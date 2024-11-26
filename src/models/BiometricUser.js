@@ -1,18 +1,7 @@
-import mongoose, { Schema, Document } from 'mongoose';
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-export interface IBiometricUser extends Document {
-  userId: string;
-  name: string;
-  country: string;
-  branch: string;
-  voiceData: string;
-  imageData: string;
-  voiceStatus: 'Available' | 'Empty';
-  imageStatus: 'Available' | 'Empty';
-  registrationDate: Date;
-}
-
-const BiometricUserSchema: Schema = new Schema({
+const BiometricUserSchema = new Schema({
   userId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   country: { type: String, required: true },
@@ -24,5 +13,4 @@ const BiometricUserSchema: Schema = new Schema({
   registrationDate: { type: Date, default: Date.now },
 });
 
-export default mongoose.model<IBiometricUser>('BiometricUser', BiometricUserSchema);
-
+module.exports = mongoose.model('BiometricUser', BiometricUserSchema);

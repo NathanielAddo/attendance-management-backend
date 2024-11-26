@@ -1,20 +1,7 @@
-import mongoose, { Schema, Document } from 'mongoose';
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-export interface ISchedule extends Document {
-  name: string;
-  branch: string;
-  startTime: string;
-  closingTime: string;
-  assignedUsers: number;
-  locations: string;
-  duration: string;
-  country: string;
-  category: string;
-  isArchived: boolean;
-  agendas: string[];
-}
-
-const ScheduleSchema: Schema = new Schema({
+const ScheduleSchema = new Schema({
   name: { type: String, required: true },
   branch: { type: String, required: true },
   startTime: { type: String, required: true },
@@ -28,5 +15,4 @@ const ScheduleSchema: Schema = new Schema({
   agendas: [{ type: String }],
 });
 
-export default mongoose.model<ISchedule>('Schedule', ScheduleSchema);
-
+module.exports = mongoose.model('Schedule', ScheduleSchema);

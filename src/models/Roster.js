@@ -1,19 +1,7 @@
-import mongoose, { Schema, Document } from 'mongoose';
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-export interface IRoster extends Document {
-  userId: mongoose.Types.ObjectId;
-  schedules: { [date: string]: string };
-  startDate: Date;
-  endDate: Date;
-  country: string;
-  branch: string;
-  category: string;
-  group: string;
-  subgroup: string;
-  schedule: string;
-}
-
-const RosterSchema: Schema = new Schema({
+const RosterSchema = new Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   schedules: { type: Map, of: String },
   startDate: { type: Date, required: true },
@@ -26,5 +14,4 @@ const RosterSchema: Schema = new Schema({
   schedule: { type: String },
 });
 
-export default mongoose.model<IRoster>('Roster', RosterSchema);
-
+module.exports = mongoose.model('Roster', RosterSchema);

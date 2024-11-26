@@ -1,27 +1,7 @@
-import mongoose, { Schema, Document } from 'mongoose';
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-export interface IAttendanceReport extends Document {
-  userId: string;
-  userName: string;
-  userImage: string;
-  totalClockIns: number;
-  totalClockOuts: number;
-  adminClockIns: number;
-  adminClockOuts: number;
-  totalHours: number;
-  overtimeHours: number;
-  lateHours: number;
-  validated: boolean;
-  breakOverstay: number;
-  absentDays: number;
-  leaveDays: number;
-  excuseDutyDays: number;
-  userType: string;
-  schedule: string;
-  date: Date;
-}
-
-const AttendanceReportSchema: Schema = new Schema({
+const AttendanceReportSchema = new Schema({
   userId: { type: String, required: true },
   userName: { type: String, required: true },
   userImage: { type: String },
@@ -42,5 +22,4 @@ const AttendanceReportSchema: Schema = new Schema({
   date: { type: Date, required: true },
 });
 
-export default mongoose.model<IAttendanceReport>('AttendanceReport', AttendanceReportSchema);
-
+module.exports = mongoose.model('AttendanceReport', AttendanceReportSchema);

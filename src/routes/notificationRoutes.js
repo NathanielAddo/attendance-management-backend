@@ -1,5 +1,5 @@
-import express from 'express';
-import * as notificationController from '../controllers/notificationController';
+const express = require('express');
+const notificationController = require('../controllers/notificationController');
 
 const router = express.Router();
 
@@ -11,5 +11,4 @@ router.post('/send', notificationController.sendNotification);
 router.get('/templates', notificationController.getNotificationTemplates);
 router.get('/activity-logs', notificationController.getActivityLogs);
 
-export default router;
-
+module.exports = router;

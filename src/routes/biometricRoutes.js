@@ -1,5 +1,5 @@
-import express from 'express';
-import * as biometricController from '../controllers/biometricController';
+const express = require('express');
+const biometricController = require('../controllers/biometricController');
 
 const router = express.Router();
 
@@ -9,5 +9,4 @@ router.get('/users', biometricController.getBiometricUsers);
 router.put('/users/:id', biometricController.updateBiometricUser);
 router.delete('/users/:id', biometricController.deleteBiometricUser);
 
-export default router;
-
+module.exports = router;

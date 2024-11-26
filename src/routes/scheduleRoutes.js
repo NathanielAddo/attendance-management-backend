@@ -1,5 +1,5 @@
-import express from 'express';
-import * as scheduleController from '../controllers/scheduleController';
+const express = require('express');
+const scheduleController = require('../controllers/scheduleController');
 
 const router = express.Router();
 
@@ -11,5 +11,4 @@ router.post('/archive/:id', scheduleController.archiveSchedule);
 router.get('/archived', scheduleController.getArchivedSchedules);
 router.post('/:id/agenda', scheduleController.addAgenda);
 
-export default router;
-
+module.exports = router;

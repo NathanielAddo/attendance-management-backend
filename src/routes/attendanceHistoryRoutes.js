@@ -1,5 +1,5 @@
-import express from 'express';
-import * as attendanceHistoryController from '../controllers/attendanceHistoryController';
+const express = require('express');
+const attendanceHistoryController = require('../controllers/attendanceHistoryController');
 
 const router = express.Router();
 
@@ -9,5 +9,4 @@ router.post('/filter', attendanceHistoryController.filterAttendance);
 router.post('/validate/:reportId', attendanceHistoryController.validateReport);
 router.get('/export', attendanceHistoryController.exportAttendanceReport);
 
-export default router;
-
+module.exports = router;

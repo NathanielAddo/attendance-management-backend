@@ -1,5 +1,5 @@
-import express from 'express';
-import * as rosterController from '../controllers/rosterController';
+const express = require('express');
+const rosterController = require('../controllers/rosterController');
 
 const router = express.Router();
 
@@ -12,5 +12,4 @@ router.post('/upload', rosterController.uploadBulkRoster);
 router.get('/assigned', rosterController.getAssignedRosters);
 router.get('/export', rosterController.exportRoster);
 
-export default router;
-
+module.exports = router;

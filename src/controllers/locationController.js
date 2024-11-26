@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import Location from '../models/Location';
+const { Request, Response } = require('express');
+const Location = require('../models/Location');
 
-export const createLocation = async (req: Request, res: Response) => {
+const createLocation = async (req, res) => {
   try {
     const newLocation = new Location(req.body);
     const savedLocation = await newLocation.save();
@@ -11,7 +11,7 @@ export const createLocation = async (req: Request, res: Response) => {
   }
 };
 
-export const getLocations = async (req: Request, res: Response) => {
+const getLocations = async (req, res) => {
   try {
     const locations = await Location.find();
     res.json(locations);
@@ -20,7 +20,7 @@ export const getLocations = async (req: Request, res: Response) => {
   }
 };
 
-export const updateLocation = async (req: Request, res: Response) => {
+const updateLocation = async (req, res) => {
   try {
     const updatedLocation = await Location.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedLocation);
@@ -29,7 +29,7 @@ export const updateLocation = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteLocation = async (req: Request, res: Response) => {
+const deleteLocation = async (req, res) => {
   try {
     await Location.findByIdAndDelete(req.params.id);
     res.json({ message: 'Location deleted successfully' });
@@ -38,3 +38,9 @@ export const deleteLocation = async (req: Request, res: Response) => {
   }
 };
 
+module.exports = {
+  createLocation,
+  getLocations,
+  updateLocation,
+  deleteLocation
+};

@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import User from '../models/User';
+const { Request, Response } = require('express');
+const User = require('../models/User');
 
-export const registerUser = async (req: Request, res: Response) => {
+const registerUser = async (req, res) => {
   try {
     const newUser = new User(req.body);
     const savedUser = await newUser.save();
@@ -11,7 +11,7 @@ export const registerUser = async (req: Request, res: Response) => {
   }
 };
 
-export const bulkRegisterUsers = async (req: Request, res: Response) => {
+const bulkRegisterUsers = async (req, res) => {
   try {
     const users = req.body;
     const savedUsers = await User.insertMany(users);
@@ -21,7 +21,7 @@ export const bulkRegisterUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const getUsers = async (req: Request, res: Response) => {
+const getUsers = async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
@@ -30,7 +30,7 @@ export const getUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const updateUser = async (req: Request, res: Response) => {
+const updateUser = async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedUser);
@@ -39,7 +39,7 @@ export const updateUser = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteUser = async (req: Request, res: Response) => {
+const deleteUser = async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
     res.json({ message: 'User deleted successfully' });
@@ -48,3 +48,10 @@ export const deleteUser = async (req: Request, res: Response) => {
   }
 };
 
+module.exports = {
+  registerUser,
+  bulkRegisterUsers,
+  getUsers,
+  updateUser,
+  deleteUser
+};

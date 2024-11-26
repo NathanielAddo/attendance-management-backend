@@ -1,8 +1,8 @@
-import { Request, Response } from 'express';
-import AttendanceReport from '../models/AttendanceReport';
-import DailyBreakdown from '../models/DailyBreakdown';
+const { Request, Response } = require('express');
+const AttendanceReport = require('../models/AttendanceReport');
+const DailyBreakdown = require('../models/DailyBreakdown');
 
-export const getAttendanceSummary = async (req: Request, res: Response) => {
+const getAttendanceSummary = async (req, res) => {
   try {
     const reports = await AttendanceReport.find();
     res.json(reports);
@@ -11,7 +11,7 @@ export const getAttendanceSummary = async (req: Request, res: Response) => {
   }
 };
 
-export const getAttendanceBreakdown = async (req: Request, res: Response) => {
+const getAttendanceBreakdown = async (req, res) => {
   try {
     const { userId } = req.params;
     const breakdown = await DailyBreakdown.find({ userId });
@@ -21,10 +21,10 @@ export const getAttendanceBreakdown = async (req: Request, res: Response) => {
   }
 };
 
-export const filterAttendance = async (req: Request, res: Response) => {
+const filterAttendance = async (req, res) => {
   try {
     const { userType, schedule, startDate, endDate, search } = req.body;
-    let query: any = {};
+    let query = {};
 
     if (userType) query.userType = userType;
     if (schedule) query.schedule = schedule;
@@ -45,7 +45,7 @@ export const filterAttendance = async (req: Request, res: Response) => {
   }
 };
 
-export const validateReport = async (req: Request, res: Response) => {
+const validateReport = async (req, res) => {
   try {
     const { reportId } = req.params;
     const updatedReport = await AttendanceReport.findByIdAndUpdate(
@@ -59,7 +59,7 @@ export const validateReport = async (req: Request, res: Response) => {
   }
 };
 
-export const exportAttendanceReport = async (req: Request, res: Response) => {
+const exportAttendanceReport = async (req, res) => {
   try {
     // Implement export logic here
     // This could involve generating a CSV or Excel file with the attendance data
@@ -69,3 +69,10 @@ export const exportAttendanceReport = async (req: Request, res: Response) => {
   }
 };
 
+module.exports = {
+  getAttendanceSummary,
+  getAttendanceBreakdown,
+  filterAttendance,
+  validateReport,
+  exportAttendanceReport
+};

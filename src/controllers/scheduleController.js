@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import Schedule from '../models/Schedule';
+const { Request, Response } = require('express');
+const Schedule = require('../models/Schedule');
 
-export const createSchedule = async (req: Request, res: Response) => {
+const createSchedule = async (req, res) => {
   try {
     const newSchedule = new Schedule(req.body);
     const savedSchedule = await newSchedule.save();
@@ -11,10 +11,10 @@ export const createSchedule = async (req: Request, res: Response) => {
   }
 };
 
-export const getSchedules = async (req: Request, res: Response) => {
+const getSchedules = async (req, res) => {
   try {
     const { country, branch, category } = req.query;
-    let query: any = { isArchived: false };
+    let query = { isArchived: false };
     if (country) query.country = country;
     if (branch) query.branch = branch;
     if (category) query.category = category;
@@ -25,7 +25,7 @@ export const getSchedules = async (req: Request, res: Response) => {
   }
 };
 
-export const updateSchedule = async (req: Request, res: Response) => {
+const updateSchedule = async (req, res) => {
   try {
     const updatedSchedule = await Schedule.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedSchedule);
@@ -34,7 +34,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteSchedule = async (req: Request, res: Response) => {
+const deleteSchedule = async (req, res) => {
   try {
     await Schedule.findByIdAndDelete(req.params.id);
     res.json({ message: 'Schedule deleted successfully' });
@@ -43,7 +43,7 @@ export const deleteSchedule = async (req: Request, res: Response) => {
   }
 };
 
-export const archiveSchedule = async (req: Request, res: Response) => {
+const archiveSchedule = async (req, res) => {
   try {
     const archivedSchedule = await Schedule.findByIdAndUpdate(req.params.id, { isArchived: true }, { new: true });
     res.json(archivedSchedule);
@@ -52,7 +52,7 @@ export const archiveSchedule = async (req: Request, res: Response) => {
   }
 };
 
-export const getArchivedSchedules = async (req: Request, res: Response) => {
+const getArchivedSchedules = async (req, res) => {
   try {
     const archivedSchedules = await Schedule.find({ isArchived: true });
     res.json(archivedSchedules);
@@ -61,7 +61,7 @@ export const getArchivedSchedules = async (req: Request, res: Response) => {
   }
 };
 
-export const addAgenda = async (req: Request, res: Response) => {
+const addAgenda = async (req, res) => {
   try {
     const { id } = req.params;
     const { agenda } = req.body;
@@ -76,3 +76,12 @@ export const addAgenda = async (req: Request, res: Response) => {
   }
 };
 
+module.exports = {
+  createSchedule,
+  getSchedules,
+  updateSchedule,
+  deleteSchedule,
+  archiveSchedule,
+  getArchivedSchedules,
+  addAgenda
+};

@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import BiometricUser from '../models/BiometricUser';
+const { Request, Response } = require('express');
+const BiometricUser = require('../models/BiometricUser');
 
-export const registerVoice = async (req: Request, res: Response) => {
+const registerVoice = async (req, res) => {
   try {
     const { userId, voiceData } = req.body;
     const user = await BiometricUser.findOneAndUpdate(
@@ -15,7 +15,7 @@ export const registerVoice = async (req: Request, res: Response) => {
   }
 };
 
-export const registerImage = async (req: Request, res: Response) => {
+const registerImage = async (req, res) => {
   try {
     const { userId, imageData } = req.body;
     const user = await BiometricUser.findOneAndUpdate(
@@ -29,10 +29,10 @@ export const registerImage = async (req: Request, res: Response) => {
   }
 };
 
-export const getBiometricUsers = async (req: Request, res: Response) => {
+const getBiometricUsers = async (req, res) => {
   try {
     const { country, branch, search } = req.query;
-    let query: any = {};
+    let query = {};
     if (country) query.country = country;
     if (branch) query.branch = branch;
     if (search) {
@@ -48,7 +48,7 @@ export const getBiometricUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const updateBiometricUser = async (req: Request, res: Response) => {
+const updateBiometricUser = async (req, res) => {
   try {
     const updatedUser = await BiometricUser.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedUser);
@@ -57,7 +57,7 @@ export const updateBiometricUser = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteBiometricUser = async (req: Request, res: Response) => {
+const deleteBiometricUser = async (req, res) => {
   try {
     await BiometricUser.findByIdAndDelete(req.params.id);
     res.json({ message: 'Biometric user deleted successfully' });
@@ -66,3 +66,10 @@ export const deleteBiometricUser = async (req: Request, res: Response) => {
   }
 };
 
+module.exports = {
+  registerVoice,
+  registerImage,
+  getBiometricUsers,
+  updateBiometricUser,
+  deleteBiometricUser
+};

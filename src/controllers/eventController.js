@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import Event from '../models/Event';
+const { Request, Response } = require('express');
+const Event = require('../models/Event');
 
-export const getEvents = async (req: Request, res: Response) => {
+const getEvents = async (req, res) => {
   try {
     const events = await Event.find();
     res.json(events);
@@ -10,7 +10,7 @@ export const getEvents = async (req: Request, res: Response) => {
   }
 };
 
-export const createEvent = async (req: Request, res: Response) => {
+const createEvent = async (req, res) => {
   try {
     const newEvent = new Event(req.body);
     const savedEvent = await newEvent.save();
@@ -20,7 +20,7 @@ export const createEvent = async (req: Request, res: Response) => {
   }
 };
 
-export const createBulkEvents = async (req: Request, res: Response) => {
+const createBulkEvents = async (req, res) => {
   try {
     const events = req.body;
     const savedEvents = await Event.insertMany(events);
@@ -30,7 +30,7 @@ export const createBulkEvents = async (req: Request, res: Response) => {
   }
 };
 
-export const updateEvent = async (req: Request, res: Response) => {
+const updateEvent = async (req, res) => {
   try {
     const updatedEvent = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedEvent);
@@ -39,7 +39,7 @@ export const updateEvent = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteEvent = async (req: Request, res: Response) => {
+const deleteEvent = async (req, res) => {
   try {
     await Event.findByIdAndDelete(req.params.id);
     res.json({ message: 'Event deleted successfully' });
@@ -48,3 +48,10 @@ export const deleteEvent = async (req: Request, res: Response) => {
   }
 };
 
+module.exports = {
+  getEvents,
+  createEvent,
+  createBulkEvents,
+  updateEvent,
+  deleteEvent
+};

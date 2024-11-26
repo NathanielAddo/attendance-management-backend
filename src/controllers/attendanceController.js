@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import Attendance from '../models/Attendance';
+const { Request, Response } = require('express');
+const Attendance = require('../models/Attendance');
 
-export const getAttendance = async (req: Request, res: Response) => {
+const getAttendance = async (req, res) => {
   try {
     const attendance = await Attendance.find();
     res.json(attendance);
@@ -10,7 +10,7 @@ export const getAttendance = async (req: Request, res: Response) => {
   }
 };
 
-export const createAttendance = async (req: Request, res: Response) => {
+const createAttendance = async (req, res) => {
   try {
     const newAttendance = new Attendance(req.body);
     const savedAttendance = await newAttendance.save();
@@ -20,7 +20,7 @@ export const createAttendance = async (req: Request, res: Response) => {
   }
 };
 
-export const updateAttendance = async (req: Request, res: Response) => {
+const updateAttendance = async (req, res) => {
   try {
     const updatedAttendance = await Attendance.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedAttendance);
@@ -29,7 +29,7 @@ export const updateAttendance = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteAttendance = async (req: Request, res: Response) => {
+const deleteAttendance = async (req, res) => {
   try {
     await Attendance.findByIdAndDelete(req.params.id);
     res.json({ message: 'Attendance record deleted successfully' });
@@ -38,3 +38,9 @@ export const deleteAttendance = async (req: Request, res: Response) => {
   }
 };
 
+module.exports = {
+  getAttendance,
+  createAttendance,
+  updateAttendance,
+  deleteAttendance
+};

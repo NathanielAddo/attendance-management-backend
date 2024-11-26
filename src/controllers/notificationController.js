@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
-import Notification from '../models/Notification';
-import NotificationTemplate from '../models/NotificationTemplate';
-import ActivityLog from '../models/ActivityLog';
+const { Request, Response } = require('express');
+const Notification = require('../models/Notification');
+const NotificationTemplate = require('../models/NotificationTemplate');
+const ActivityLog = require('../models/ActivityLog');
 
-export const createNotification = async (req: Request, res: Response) => {
+const createNotification = async (req, res) => {
   try {
     const newNotification = new Notification(req.body);
     const savedNotification = await newNotification.save();
@@ -13,7 +13,7 @@ export const createNotification = async (req: Request, res: Response) => {
   }
 };
 
-export const getNotifications = async (req: Request, res: Response) => {
+const getNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find();
     res.json(notifications);
@@ -22,7 +22,7 @@ export const getNotifications = async (req: Request, res: Response) => {
   }
 };
 
-export const updateNotification = async (req: Request, res: Response) => {
+const updateNotification = async (req, res) => {
   try {
     const updatedNotification = await Notification.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedNotification);
@@ -31,7 +31,7 @@ export const updateNotification = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteNotification = async (req: Request, res: Response) => {
+const deleteNotification = async (req, res) => {
   try {
     await Notification.findByIdAndDelete(req.params.id);
     res.json({ message: 'Notification deleted successfully' });
@@ -40,7 +40,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
   }
 };
 
-export const sendNotification = async (req: Request, res: Response) => {
+const sendNotification = async (req, res) => {
   try {
     const { notificationId, users } = req.body;
     const notification = await Notification.findById(notificationId);
@@ -63,7 +63,7 @@ export const sendNotification = async (req: Request, res: Response) => {
   }
 };
 
-export const getNotificationTemplates = async (req: Request, res: Response) => {
+const getNotificationTemplates = async (req, res) => {
   try {
     const templates = await NotificationTemplate.find();
     res.json(templates);
@@ -72,7 +72,7 @@ export const getNotificationTemplates = async (req: Request, res: Response) => {
   }
 };
 
-export const getActivityLogs = async (req: Request, res: Response) => {
+const getActivityLogs = async (req, res) => {
   try {
     const activityLogs = await ActivityLog.find().sort({ timestamp: -1 });
     res.json(activityLogs);
@@ -81,3 +81,12 @@ export const getActivityLogs = async (req: Request, res: Response) => {
   }
 };
 
+module.exports = {
+  createNotification,
+  getNotifications,
+  updateNotification,
+  deleteNotification,
+  sendNotification,
+  getNotificationTemplates,
+  getActivityLogs,
+};

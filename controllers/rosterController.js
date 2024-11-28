@@ -79,3 +79,22 @@ export const bulkCreateRoster = async (req, res) => {
   }
 };
 
+export const getAssignedRosters = async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT r.*, u.name as user_name FROM roster r JOIN users u ON r.user_id = u.id');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const exportRoster = async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT r.*, u.name as user_name FROM roster r JOIN users u ON r.user_id = u.id');
+    // In a real-world scenario, you would format this data for export (e.g., CSV)
+    res.json({ message: 'Roster exported successfully', data: rows });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

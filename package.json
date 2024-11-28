@@ -1,6 +1,7 @@
 {
   "name": "attendance-management-backend",
   "version": "1.0.0",
+  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",

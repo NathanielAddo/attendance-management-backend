@@ -1,59 +1,64 @@
 import { pool } from '../db.js';
 
-export const getBiometricData = async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const { rows } = await pool.query('SELECT * FROM biometric_data WHERE user_id = $1', [userId]);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Biometric data not found' });
-    }
-    res.json(rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const createBiometricData = async (req, res) => {
-  const { user_id, voice_data, image_data } = req.body;
+export const registerVoice = async (req, res) => {
+  const { voiceData } = req.body;
+  const userId = req.user.id;
   try {
     const { rows } = await pool.query(
-      'INSERT INTO biometric_data (user_id, voice_data, image_data) VALUES ($1, $2, $3) RETURNING *',
-      [user_id, voice_data, image_data]
+      'INSERT INTO biometric_data (user_id, voice_data) VALUES ($1, $2) RETURNING *',
+      [userId, voiceData]
     );
-    res.status(201).json(rows[0]);
+    res.status(201).json({ message: 'Voice registered successfully.', voiceId: rows[0].id, uploadedAt: rows[0].created_at });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// ... (updateBiometricData and deleteBiometricData implementations)
-
-export const updateBiometricData = async (req, res) => {
-  const { userId } = req.params;
-  const { voice_data, image_data } = req.body;
+export const registerImage = async (req, res) => {
+  const { imageData } = req.body;
+  const userId = req.user.id;
   try {
-    const { rowCount } = await pool.query(
-      'UPDATE biometric_data SET voice_data = $1, image_data = $2 WHERE user_id = $3',
-      [voice_data, image_data, userId]
+    const { rows } = await pool.query(
+      'INSERT INTO biometric_data (user_id, image_data) VALUES ($1, $2) RETURNING *',
+      [userId, imageData]
     );
-    if (rowCount === 0) {
-      return res.status(404).json({ message: 'Biometric data not found' });
-    }
-    res.json({ message: 'Biometric data updated successfully' });
+    res.status(201).json({ message: 'Image registered successfully.', imageId: rows[0].id, uploadedAt: rows[0].created_at });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const deleteBiometricData = async (req, res) => {
-  const { userId } = req.params;
+export const updateVoice = async (req, res) => {
+  const { voiceData } = req.body;
+  const userId = req.user.id;
   try {
-    const { rowCount } = await pool.query('DELETE FROM biometric_data WHERE user_id = $1', [userId]);
-    if (rowCount === 0) {
-      return res.status(404).json({ message: 'Biometric data not found' });
+    const { rows } = await pool.query(
+      'UPDATE biometric_data SET voice_data = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING *',
+      [voiceData, userId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Voice sample not found' });
     }
-    res.json({ message: 'Biometric data deleted successfully' });
+    res.json({ message: 'Voice updated successfully.', voiceId: rows[0].id, updatedAt: rows[0].updated_at });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const updateImage = async (req, res) => {
+  const { imageData } = req.body;
+  const userId = req.user.id;
+  try {
+    const { rows } = await pool.query(
+      'UPDATE biometric_data SET image_data = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING *',
+      [imageData, userId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Profile image not found' });
+    }
+    res.json({ message: 'Image updated successfully.', imageId: rows[0].id, updatedAt: rows[0].updated_at });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

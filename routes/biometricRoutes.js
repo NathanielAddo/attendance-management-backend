@@ -1,12 +1,12 @@
 import express from 'express';
-import { getBiometricData, createBiometricData, updateBiometricData, deleteBiometricData } from '../controllers/biometricController.js';
+import { registerVoice, registerImage, updateVoice, updateImage } from '../controllers/biometricController.js';
 
 const router = express.Router();
 
-router.get('/:userId', getBiometricData);
-router.post('/', createBiometricData);
-router.put('/:userId', updateBiometricData);
-router.delete('/:userId', deleteBiometricData);
+router.post('/voice-register', registerVoice);
+router.post('/image-register', registerImage);
+router.put('/voice-register', updateVoice);
+router.put('/image-register', updateImage);
 
 export default router;
 

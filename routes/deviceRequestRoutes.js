@@ -1,14 +1,11 @@
 import express from 'express';
-import { getDeviceRequests, createDeviceRequest, updateDeviceRequest, deleteDeviceRequest, bulkApproveDeviceRequests, bulkDeleteDeviceRequests } from '../controllers/deviceRequestController.js';
+import { submitDeviceRequest, getDeviceRequestStatus, cancelDeviceRequest } from '../controllers/deviceRequestController.js';
 
 const router = express.Router();
 
-router.get('/', getDeviceRequests);
-router.post('/', createDeviceRequest);
-router.put('/:id', updateDeviceRequest);
-router.delete('/:id', deleteDeviceRequest);
-router.post('/bulk-approve', bulkApproveDeviceRequests);
-router.post('/bulk-delete', bulkDeleteDeviceRequests);
+router.post('/request-approval', submitDeviceRequest);
+router.get('/request-status', getDeviceRequestStatus);
+router.delete('/request-approval/:requestId', cancelDeviceRequest);
 
 export default router;
 

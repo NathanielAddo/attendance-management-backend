@@ -1,200 +1,84 @@
 import { pool } from '../db.js';
 
-export const getAttendance = async (req, res) => {
-  const { startDate, endDate, userType, country, branch, category, group, subgroup, location, gender, schedule, status } = req.query;
+export const getAttendees = async (req, res) => {
+  const { scheduleId } = req.params;
+  const { date, status } = req.query;
   try {
-    let query = 'SELECT a.*, u.name, u.image_url FROM attendance a JOIN users u ON a.user_id = u.id WHERE 1=1';
-    const values = [];
-    let valueIndex = 1;
+    let query = `
+      SELECT u.id as user_id, u.name, a.status, a.clock_in_time, a.clock_out_time
+      FROM users u
+      LEFT JOIN attendance a ON u.id = a.user_id AND a.schedule_id = $1 AND a.date = $2
+      WHERE u.id IN (SELECT user_id FROM schedule_participants WHERE schedule_id = $1)
+    `;
+    const values = [scheduleId, date];
 
-    if (startDate && endDate) {
-      query += ` AND a.date BETWEEN $${valueIndex++} AND $${valueIndex++}`;
-      values.push(startDate, endDate);
-    }
-    if (userType) {
-      query += ` AND u.role = $${valueIndex++}`;
-      values.push(userType);
-    }
-    if (country) {
-      query += ` AND u.country = $${valueIndex++}`;
-      values.push(country);
-    }
-    if (branch) {
-      query += ` AND u.branch = $${valueIndex++}`;
-      values.push(branch);
-    }
-    if (category) {
-      query += ` AND u.category = $${valueIndex++}`;
-      values.push(category);
-    }
-    if (group) {
-      query += ` AND u.group_name = $${valueIndex++}`;
-      values.push(group);
-    }
-    if (subgroup) {
-      query += ` AND u.subgroup = $${valueIndex++}`;
-      values.push(subgroup);
-    }
-    if (location) {
-      query += ` AND a.location = $${valueIndex++}`;
-      values.push(location);
-    }
-    if (gender) {
-      query += ` AND u.gender = $${valueIndex++}`;
-      values.push(gender);
-    }
-    if (schedule) {
-      query += ` AND a.schedule = $${valueIndex++}`;
-      values.push(schedule);
-    }
     if (status) {
-      query += ` AND a.status = $${valueIndex++}`;
+      query += ' AND a.status = $3';
       values.push(status);
     }
 
     const { rows } = await pool.query(query, values);
-    res.json(rows);
+    res.json({ success: true, data: { scheduleId, date, attendees: rows } });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const getAttendanceStats = async (req, res) => {
-  const { startDate, endDate } = req.query;
+export const getAbsentees = async (req, res) => {
+  const { scheduleId } = req.params;
+  const { date } = req.query;
   try {
     const query = `
-      SELECT 
-        COUNT(*) as total_employees,
-        SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) as late_arrivals,
-        SUM(CASE WHEN status = 'On Time' THEN 1 ELSE 0 END) as on_time,
-        SUM(CASE WHEN status = 'Early Departure' THEN 1 ELSE 0 END) as early_departures,
-        SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent,
-        SUM(CASE WHEN status = 'Time Off' THEN 1 ELSE 0 END) as time_off
-      FROM attendance
-      WHERE date BETWEEN $1 AND $2
+      SELECT u.id as user_id, u.name, a.reason
+      FROM users u
+      LEFT JOIN attendance a ON u.id = a.user_id AND a.schedule_id = $1 AND a.date = $2
+      WHERE u.id IN (SELECT user_id FROM schedule_participants WHERE schedule_id = $1)
+      AND (a.status IS NULL OR a.status = 'Absent')
     `;
-    const { rows } = await pool.query(query, [startDate, endDate]);
-    res.json(rows[0]);
+    const { rows } = await pool.query(query, [scheduleId, date]);
+    res.json({ success: true, data: { scheduleId, date, absentees: rows } });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const createAttendance = async (req, res) => {
-  const { user_id, date, clock_in, clock_out, status, location, coordinates, landmark, clocked_by } = req.body;
+export const clockIn = async (req, res) => {
+  const { scheduleId } = req.params;
+  const { userId, timestamp, location, deviceInfo } = req.body;
   try {
     const { rows } = await pool.query(
-      'INSERT INTO attendance (user_id, date, clock_in, clock_out, status, location, coordinates, landmark, clocked_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [user_id, date, clock_in, clock_out, status, location, coordinates, landmark, clocked_by]
+      'INSERT INTO attendance (user_id, schedule_id, clock_in_time, location, device_info) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [userId, scheduleId, timestamp, JSON.stringify(location), JSON.stringify(deviceInfo)]
     );
-    res.status(201).json(rows[0]);
+    res.status(201).json({ success: true, message: 'User clocked in successfully.', data: rows[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const updateAttendance = async (req, res) => {
-  const { id } = req.params;
-  const { user_id, date, clock_in, clock_out, status, location, coordinates, landmark, clocked_by } = req.body;
+export const validateClockIn = async (req, res) => {
+  const { scheduleId } = req.params;
+  const { userId, timestamp, location } = req.body;
   try {
-    const { rows } = await pool.query(
-      'UPDATE attendance SET user_id = $1, date = $2, clock_in = $3, clock_out = $4, status = $5, location = $6, coordinates = $7, landmark = $8, clocked_by = $9 WHERE id = $10 RETURNING *',
-      [user_id, date, clock_in, clock_out, status, location, coordinates, landmark, clocked_by, id]
-    );
+    const { rows } = await pool.query('SELECT * FROM schedules WHERE id = $1', [scheduleId]);
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Attendance record not found' });
+      return res.status(404).json({ message: 'Schedule not found' });
     }
-    res.json(rows[0]);
+    const schedule = rows[0];
+    const clockInLimit = new Date(schedule.clock_in_limit);
+    const clockInTime = new Date(timestamp);
+    
+    if (clockInTime > clockInLimit) {
+      return res.json({ success: true, data: { allowed: false, reason: 'Clock-in time exceeded limit' } });
+    }
+    
+    // Add additional validation logic here (e.g., location check)
+    
+    res.json({ success: true, data: { allowed: true, reason: null } });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const deleteAttendance = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { rowCount } = await pool.query('DELETE FROM attendance WHERE id = $1', [id]);
-    if (rowCount === 0) {
-      return res.status(404).json({ message: 'Attendance record not found' });
-    }
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const bulkClockIn = async (req, res) => {
-  const { userIds, date, time, reason } = req.body;
-  try {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const userId of userIds) {
-        await client.query(
-          'INSERT INTO attendance (user_id, date, clock_in, status, clocked_by) VALUES ($1, $2, $3, $4, $5)',
-          [userId, date, time, 'On Time', 'Admin']
-        );
-      }
-      await client.query('COMMIT');
-      res.status(201).json({ message: 'Bulk clock-in successful' });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const bulkClockOut = async (req, res) => {
-  const { userIds, date, time, reason } = req.body;
-  try {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const userId of userIds) {
-        await client.query(
-          'UPDATE attendance SET clock_out = $1, clocked_by = $2 WHERE user_id = $3 AND date = $4',
-          [time, 'Admin', userId, date]
-        );
-      }
-      await client.query('COMMIT');
-      res.status(200).json({ message: 'Bulk clock-out successful' });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const bulkCancel = async (req, res) => {
-  const { userIds, date, reason } = req.body;
-  try {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const userId of userIds) {
-        await client.query(
-          'DELETE FROM attendance WHERE user_id = $1 AND date = $2',
-          [userId, date]
-        );
-      }
-      await client.query('COMMIT');
-      res.status(200).json({ message: 'Bulk cancellation successful' });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+// Implement clockOut, validateClockOut, getClockingRecords, getUserClockingRecord, and exportClockingRecords similarly
 

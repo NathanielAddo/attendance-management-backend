@@ -1,117 +1,61 @@
 import { pool } from '../db.js';
 
-export const getDeviceRequests = async (req, res) => {
-  const { branch, status, search } = req.query;
-  try {
-    let query = 'SELECT dr.*, u.name, u.branch FROM device_requests dr JOIN users u ON dr.user_id = u.id WHERE 1=1';
-    const values = [];
-    let valueIndex = 1;
-
-    if (branch) {
-      query += ` AND u.branch = $${valueIndex++}`;
-      values.push(branch);
-    }
-    if (status) {
-      query += ` AND dr.status = $${valueIndex++}`;
-      values.push(status);
-    }
-    if (search) {
-      query += ` AND (u.name ILIKE $${valueIndex} OR u.id::text ILIKE $${valueIndex})`;
-      values.push(`%${search}%`);
-    }
-
-    const { rows } = await pool.query(query, values);
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const createDeviceRequest = async (req, res) => {
-  const { user_id, device_info } = req.body;
+export const submitDeviceRequest = async (req, res) => {
+  const { deviceInfo } = req.body;
+  const userId = req.user.id;
   try {
     const { rows } = await pool.query(
       'INSERT INTO device_requests (user_id, device_info, status) VALUES ($1, $2, $3) RETURNING *',
-      [user_id, device_info, 'pending']
+      [userId, JSON.stringify(deviceInfo), 'pending']
     );
-    res.status(201).json(rows[0]);
+    res.status(201).json({ message: 'Device approval request submitted successfully.', requestId: rows[0].id, status: rows[0].status, submittedAt: rows[0].created_at });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const updateDeviceRequest = async (req, res) => {
-  const { id } = req.params;
-  const { device_info, status } = req.body;
+export const getDeviceRequestStatus = async (req, res) => {
+  const userId = req.user.id;
+  const { requestId } = req.query;
+  try {
+    let query = 'SELECT * FROM device_requests WHERE user_id = $1';
+    const values = [userId];
+    if (requestId) {
+      query += ' AND id = $2';
+      values.push(requestId);
+    }
+    const { rows } = await pool.query(query, values);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+    const requests = rows.map(row => ({
+      requestId: row.id,
+      deviceId: JSON.parse(row.device_info).deviceId,
+      deviceName: JSON.parse(row.device_info).deviceName,
+      status: row.status,
+      submittedAt: row.created_at,
+      approvedAt: row.approved_at,
+      rejectedAt: row.rejected_at,
+      reviewedBy: row.reviewed_by
+    }));
+    res.json({ requests });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const cancelDeviceRequest = async (req, res) => {
+  const { requestId } = req.params;
+  const userId = req.user.id;
   try {
     const { rows } = await pool.query(
-      'UPDATE device_requests SET device_info = $1, status = $2 WHERE id = $3 RETURNING *',
-      [device_info, status, id]
+      'DELETE FROM device_requests WHERE id = $1 AND user_id = $2 AND status = $3 RETURNING *',
+      [requestId, userId, 'pending']
     );
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Device request not found' });
+      return res.status(404).json({ message: 'Request not found or cannot be canceled' });
     }
-    res.json(rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const deleteDeviceRequest = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { rowCount } = await pool.query('DELETE FROM device_requests WHERE id = $1', [id]);
-    if (rowCount === 0) {
-      return res.status(404).json({ message: 'Device request not found' });
-    }
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const bulkApproveDeviceRequests = async (req, res) => {
-  const { ids } = req.body;
-  try {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const id of ids) {
-        await client.query(
-          'UPDATE device_requests SET status = $1 WHERE id = $2',
-          ['approved', id]
-        );
-      }
-      await client.query('COMMIT');
-      res.status(200).json({ message: 'Bulk approval successful' });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const bulkDeleteDeviceRequests = async (req, res) => {
-  const { ids } = req.body;
-  try {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const id of ids) {
-        await client.query('DELETE FROM device_requests WHERE id = $1', [id]);
-      }
-      await client.query('COMMIT');
-      res.status(200).json({ message: 'Bulk deletion successful' });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    res.json({ message: 'Device approval request canceled successfully.', requestId: rows[0].id });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

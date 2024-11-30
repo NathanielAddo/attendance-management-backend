@@ -1,55 +1,38 @@
 import { pool } from '../db.js';
 
 export const getSchedules = async (req, res) => {
+  const { date, branchId, scheduleType } = req.query;
   try {
-    const { rows } = await pool.query('SELECT * FROM schedules');
-    res.json(rows);
+    let query = 'SELECT * FROM schedules WHERE date = $1';
+    const values = [date];
+    let valueIndex = 2;
+
+    if (branchId) {
+      query += ` AND branch_id = $${valueIndex++}`;
+      values.push(branchId);
+    }
+    if (scheduleType) {
+      query += ` AND schedule_type = $${valueIndex++}`;
+      values.push(scheduleType);
+    }
+
+    const { rows } = await pool.query(query, values);
+    res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const createSchedule = async (req, res) => {
-  const { name, branch, start_time, closing_time, assigned_users, locations, duration } = req.body;
+export const getClockInLimit = async (req, res) => {
+  const { scheduleId } = req.params;
   try {
-    const { rows } = await pool.query(
-      'INSERT INTO schedules (name, branch, start_time, closing_time, assigned_users, locations, duration) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [name, branch, start_time, closing_time, assigned_users, locations, duration]
-    );
-    res.status(201).json(rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// ... (updateSchedule and deleteSchedule implementations)
-
-export const updateSchedule = async (req, res) => {
-  const { id } = req.params;
-  const { name, branch, start_time, closing_time, assigned_users, locations, duration } = req.body;
-  try {
-    const { rows } = await pool.query(
-      'UPDATE schedules SET name = $1, branch = $2, start_time = $3, closing_time = $4, assigned_users = $5, locations = $6, duration = $7 WHERE id = $8 RETURNING *',
-      [name, branch, start_time, closing_time, assigned_users, locations, duration, id]
-    );
+    const { rows } = await pool.query('SELECT id as schedule_id, title, date, clock_in_limit FROM schedules WHERE id = $1', [scheduleId]);
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Schedule not found' });
+      return res.status(404).json({ message: 'Schedule not found' });
     }
-    res.json(rows[0]);
+    res.json({ success: true, data: rows[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const deleteSchedule = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { rowCount } = await pool.query('DELETE FROM schedules WHERE id = $1', [id]);
-    if (rowCount === 0) {
-      return res.status(404).json({ error: 'Schedule not found' });
-    }
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};

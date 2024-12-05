@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { pool } from './db.js';
 import userRoutes from './routes/userRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import rosterRoutes from './routes/rosterRoutes.js';
@@ -23,7 +22,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/users', userRoutes);
-app.use('/api/attendance', attendanceRoutes);
+app.use('/api/attendance', attendanceRoutes);   
 app.use('/api/roster', rosterRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/schedules', scheduleRoutes);
@@ -36,4 +35,3 @@ app.use('/api/reports', reportRoutes);
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-

@@ -1,7 +1,7 @@
 import { gzip } from 'zlib';
 import { promisify } from 'util';
 import s3 from './spaces';
-import pool from './db';
+import { pool } from './db';
 
 const gzipAsync = promisify(gzip);
 

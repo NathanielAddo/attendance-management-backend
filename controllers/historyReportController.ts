@@ -72,11 +72,13 @@ const getBreakdownReport = async (req: Request, res: Response) => {
   }
 };
 
-const validateUsers = async (req: AuthenticatedRequest, res: Response) => {
+const validateUsers = async (req: Partial<Request> | Partial<AuthenticatedRequest>, res: Response) => {
   try {
-    const { userIds } = req.body;
-    const { rows } = await pool.query(validateUsersQuery, [req.user.id, userIds]);
-    res.json({ message: 'Users validated successfully', updatedCount: rows.length });
+    if ('user' in req && req.user?.id && req.body?.userIds) {
+      const { userIds } = req.body;
+      const { rows } = await pool.query(validateUsersQuery, [req.user.id, userIds]);
+      res.json({ message: 'Users validated successfully', updatedCount: rows.length });
+    }
   } catch (error) {
     console.error('Error validating users:', error);
     res.status(400).json({ message: 'Error validating users' });

@@ -1,64 +1,27 @@
 import { Request, Response } from 'express';
+import { pool } from '../db';
+import { createObjectCsvWriter } from 'csv-writer';
+import path from 'path';
+import { getSummaryReportQuery, getBreakdownReportQuery, validateUsersQuery } from '../utils/historyReportQueries';
 
 interface AuthenticatedRequest extends Request {
   user: {
     id: string;
   };
 }
-import User from '../models/User';
-import Attendance from '../models/Attendance';
-import { createObjectCsvWriter } from 'csv-writer';
-import path from 'path';
-import mongoose from 'mongoose';
 
 const getSummaryReport = async (req: Request, res: Response) => {
   try {
     const { userType, country, branch, category, group, subgroup, schedule, startDate, endDate, search } = req.query;
 
-    let query: any = {};
-    if (userType) query.userType = userType;
-    if (country) query.country = country;
-    if (branch) query.branch = branch;
-    if (category) query.category = category;
-    if (group) query.group = group;
-    if (subgroup) query.subgroup = subgroup;
-    if (schedule) query.schedule = schedule;
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { id: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const users = await User.find(query);
-    const userIds = users.map(user => user._id);
-
-    const attendanceData = await Attendance.aggregate([
-      { $match: { userId: { $in: userIds }, date: { $gte: new Date(startDate as string), $lte: new Date(endDate as string) } } },
-      { $group: {
-        _id: '$userId',
-        clockIns: { $sum: { $cond: [{ $eq: ['$type', 'clockIn'] }, 1, 0] } },
-        clockOuts: { $sum: { $cond: [{ $eq: ['$type', 'clockOut'] }, 1, 0] } },
-        adminClockIns: { $sum: { $cond: [{ $and: [{ $eq: ['$type', 'clockIn'] }, { $eq: ['$source', 'admin'] }] }, 1, 0] } },
-        adminClockOuts: { $sum: { $cond: [{ $and: [{ $eq: ['$type', 'clockOut'] }, { $eq: ['$source', 'admin'] }] }, 1, 0] } },
-        totalHours: { $sum: '$hours' },
-        overtimeHours: { $sum: '$overtimeHours' },
-        lateHours: { $sum: '$lateHours' },
-        breakOverstayHrs: { $sum: '$breakOverstayHours' },
-        clockOutBeforeTimeHrs: { $sum: '$earlyDepartureHours' },
-      }},
+    const { rows } = await pool.query(getSummaryReportQuery, [
+      startDate, endDate, userType, country, branch, category, group, subgroup, schedule,
+      search ? `%${search}%` : null
     ]);
 
-    const summaryReport = users.map(user => {
-      const attendance = attendanceData.find(a => a._id.toString() === user._id.toString()) || {};
-      return {
-        ...user.toObject(),
-        ...attendance,
-      };
-    });
-
-    res.json(summaryReport);
+    res.json(rows);
   } catch (error) {
+    console.error('Error fetching summary report:', error);
     res.status(500).json({ message: 'Error fetching summary report' });
   }
 };
@@ -67,44 +30,44 @@ const getBreakdownReport = async (req: Request, res: Response) => {
   try {
     const { userType, country, branch, category, group, subgroup, schedule, startDate, endDate, search } = req.query;
 
-    let query: any = {};
-    if (userType) query.userType = userType;
-    if (country) query.country = country;
-    if (branch) query.branch = branch;
-    if (category) query.category = category;
-    if (group) query.group = group;
-    if (subgroup) query.subgroup = subgroup;
-    if (schedule) query.schedule = schedule;
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { id: { $regex: search, $options: 'i' } },
-      ];
-    }
+    const { rows } = await pool.query(getBreakdownReportQuery, [
+      startDate, endDate, userType, country, branch, category, group, subgroup, schedule,
+      search ? `%${search}%` : null
+    ]);
 
-    const users = await User.find(query);
-    const userIds = users.map(user => user._id);
+    const breakdownReport = rows.reduce((acc, row) => {
+      if (!acc[row.id]) {
+        acc[row.id] = {
+          ...row,
+          records: []
+        };
+        delete acc[row.id].date;
+        delete acc[row.id].clock_in_time;
+        delete acc[row.id].clock_out_time;
+        delete acc[row.id].clocked_by;
+        delete acc[row.id].hours;
+        delete acc[row.id].overtimeHours;
+        delete acc[row.id].lateHours;
+        delete acc[row.id].breakOverstayHours;
+        delete acc[row.id].earlyDepartureHours;
+      }
+      acc[row.id].records.push({
+        date: row.date,
+        clockIn: row.clock_in_time,
+        clockOut: row.clock_out_time,
+        clockedBy: row.clocked_by,
+        hours: row.hours,
+        overtimeHours: row.overtimeHours,
+        lateHours: row.lateHours,
+        breakOverstayHours: row.breakOverstayHours,
+        earlyDepartureHours: row.earlyDepartureHours
+      });
+      return acc;
+    }, {});
 
-    const attendanceData = await Attendance.find({
-      userId: { $in: userIds },
-      date: { $gte: new Date(startDate as string), $lte: new Date(endDate as string) },
-    }).sort({ date: 1 });
-
-    const breakdownReport = users.map(user => {
-      const userAttendance = attendanceData.filter(a => a.userId.toString() === user._id.toString());
-      return {
-        ...user.toObject(),
-        records: userAttendance.map(a => ({
-          date: a.date,
-          clockIn: a.type === 'clockIn' ? a.date : null,
-          clockOut: a.type === 'clockOut' ? a.date : null,
-          clockedBy: a.source,
-        })),
-      };
-    });
-
-    res.json(breakdownReport);
+    res.json(Object.values(breakdownReport));
   } catch (error) {
+    console.error('Error fetching breakdown report:', error);
     res.status(500).json({ message: 'Error fetching breakdown report' });
   }
 };
@@ -112,12 +75,10 @@ const getBreakdownReport = async (req: Request, res: Response) => {
 const validateUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userIds } = req.body;
-    const updatedUsers = await User.updateMany(
-      { _id: { $in: userIds } },
-      { $set: { validated: true, validatedBy: req.user.id } }
-    );
-    res.json({ message: 'Users validated successfully', updatedCount: updatedUsers.modifiedCount });
+    const { rows } = await pool.query(validateUsersQuery, [req.user.id, userIds]);
+    res.json({ message: 'Users validated successfully', updatedCount: rows.length });
   } catch (error) {
+    console.error('Error validating users:', error);
     res.status(400).json({ message: 'Error validating users' });
   }
 };
@@ -126,47 +87,10 @@ const downloadSummaryReport = async (req: Request, res: Response) => {
   try {
     const { userType, country, branch, category, group, subgroup, schedule, startDate, endDate, search } = req.query;
 
-    let query: any = {};
-    if (userType) query.userType = userType;
-    if (country) query.country = country;
-    if (branch) query.branch = branch;
-    if (category) query.category = category;
-    if (group) query.group = group;
-    if (subgroup) query.subgroup = subgroup;
-    if (schedule) query.schedule = schedule;
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { id: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const users = await User.find(query);
-    const userIds = users.map(user => user._id);
-
-    const attendanceData = await Attendance.aggregate([
-      { $match: { userId: { $in: userIds }, date: { $gte: new Date(startDate as string), $lte: new Date(endDate as string) } } },
-      { $group: {
-        _id: '$userId',
-        clockIns: { $sum: { $cond: [{ $eq: ['$type', 'clockIn'] }, 1, 0] } },
-        clockOuts: { $sum: { $cond: [{ $eq: ['$type', 'clockOut'] }, 1, 0] } },
-        adminClockIns: { $sum: { $cond: [{ $and: [{ $eq: ['$type', 'clockIn'] }, { $eq: ['$source', 'admin'] }] }, 1, 0] } },
-        adminClockOuts: { $sum: { $cond: [{ $and: [{ $eq: ['$type', 'clockOut'] }, { $eq: ['$source', 'admin'] }] }, 1, 0] } },
-        totalHours: { $sum: '$hours' },
-        overtimeHours: { $sum: '$overtimeHours' },
-        lateHours: { $sum: '$lateHours' },
-        breakOverstayHrs: { $sum: '$breakOverstayHours' },
-        clockOutBeforeTimeHrs: { $sum: '$earlyDepartureHours' },
-      }},
+    const { rows } = await pool.query(getSummaryReportQuery, [
+      startDate, endDate, userType, country, branch, category, group, subgroup, schedule,
+      search ? `%${search}%` : null
     ]);
-
-    const summaryReport = users.map(user => {
-      const attendance = attendanceData.find(a => a._id.toString() === user._id.toString()) || {};
-      return {
-        ...user.toObject(),
-        ...attendance,
-      };
-    });
 
     const csvWriter = createObjectCsvWriter({
       path: path.resolve(__dirname, '../exports/summary_report.csv'),
@@ -177,7 +101,7 @@ const downloadSummaryReport = async (req: Request, res: Response) => {
         { id: 'country', title: 'Country' },
         { id: 'branch', title: 'Branch' },
         { id: 'category', title: 'Category' },
-        { id: 'group', title: 'Group' },
+        { id: 'group_name', title: 'Group' },
         { id: 'subgroup', title: 'Subgroup' },
         { id: 'schedule', title: 'Schedule' },
         { id: 'clockIns', title: 'Clock Ins' },
@@ -192,7 +116,7 @@ const downloadSummaryReport = async (req: Request, res: Response) => {
       ]
     });
 
-    await csvWriter.writeRecords(summaryReport);
+    await csvWriter.writeRecords(rows);
 
     res.download(path.resolve(__dirname, '../exports/summary_report.csv'), 'summary_report.csv', (err) => {
       if (err) {
@@ -200,6 +124,7 @@ const downloadSummaryReport = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
+    console.error('Error downloading summary report:', error);
     res.status(500).json({ message: 'Error downloading summary report' });
   }
 };
@@ -208,69 +133,27 @@ const downloadBreakdownReport = async (req: Request, res: Response) => {
   try {
     const { userType, country, branch, category, group, subgroup, schedule, startDate, endDate, search } = req.query;
 
-    let query: any = {};
-    if (userType) query.userType = userType;
-    if (country) query.country = country;
-    if (branch) query.branch = branch;
-    if (category) query.category = category;
-    if (group) query.group = group;
-    if (subgroup) query.subgroup = subgroup;
-    if (schedule) query.schedule = schedule;
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { id: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const users = await User.find(query);
-    const userIds = users.map(user => user._id);
-
-    const attendanceData = await Attendance.find({
-      userId: { $in: userIds },
-      date: { $gte: new Date(startDate as string), $lte: new Date(endDate as string) },
-    }).sort({ date: 1 });
-
-    const breakdownReport = users.flatMap(user => {
-      const userAttendance = attendanceData.filter(a => a.userId.toString() === user._id.toString());
-      return userAttendance.map(a => ({
-        userId: user.id,
-        name: user.name,
-        userType: user.userType,
-        country: user.country,
-        branch: user.branch,
-        category: user.category,
-        group: user.group,
-        subgroup: user.subgroup,
-        schedule: user.schedule,
-        date: a.date,
-        clockIn: a.type === 'clockIn' ? a.date : null,
-        clockOut: a.type === 'clockOut' ? a.date : null,
-        clockedBy: a.source,
-        hours: a.hours,
-        overtimeHours: a.overtimeHours,
-        lateHours: a.lateHours,
-        breakOverstayHours: a.breakOverstayHours,
-        earlyDepartureHours: a.earlyDepartureHours,
-      }));
-    });
+    const { rows } = await pool.query(getBreakdownReportQuery, [
+      startDate, endDate, userType, country, branch, category, group, subgroup, schedule,
+      search ? `%${search}%` : null
+    ]);
 
     const csvWriter = createObjectCsvWriter({
       path: path.resolve(__dirname, '../exports/breakdown_report.csv'),
       header: [
-        { id: 'userId', title: 'User ID' },
+        { id: 'id', title: 'User ID' },
         { id: 'name', title: 'Name' },
         { id: 'userType', title: 'User Type' },
         { id: 'country', title: 'Country' },
         { id: 'branch', title: 'Branch' },
         { id: 'category', title: 'Category' },
-        { id: 'group', title: 'Group' },
+        { id: 'group_name', title: 'Group' },
         { id: 'subgroup', title: 'Subgroup' },
         { id: 'schedule', title: 'Schedule' },
         { id: 'date', title: 'Date' },
-        { id: 'clockIn', title: 'Clock In' },
-        { id: 'clockOut', title: 'Clock Out' },
-        { id: 'clockedBy', title: 'Clocked By' },
+        { id: 'clock_in_time', title: 'Clock In' },
+        { id: 'clock_out_time', title: 'Clock Out' },
+        { id: 'clocked_by', title: 'Clocked By' },
         { id: 'hours', title: 'Hours' },
         { id: 'overtimeHours', title: 'Overtime Hours' },
         { id: 'lateHours', title: 'Late Hours' },
@@ -279,7 +162,7 @@ const downloadBreakdownReport = async (req: Request, res: Response) => {
       ]
     });
 
-    await csvWriter.writeRecords(breakdownReport);
+    await csvWriter.writeRecords(rows);
 
     res.download(path.resolve(__dirname, '../exports/breakdown_report.csv'), 'breakdown_report.csv', (err) => {
       if (err) {
@@ -287,6 +170,7 @@ const downloadBreakdownReport = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
+    console.error('Error downloading breakdown report:', error);
     res.status(500).json({ message: 'Error downloading breakdown report' });
   }
 };
@@ -298,3 +182,4 @@ export {
   downloadSummaryReport,
   downloadBreakdownReport,
 };
+

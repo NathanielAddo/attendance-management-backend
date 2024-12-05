@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import AttendanceStats from '../models/AttendanceStat';
+import { pool } from '../db';
 import { createObjectCsvWriter } from 'csv-writer';
 import path from 'path';
+import { getAttendanceSummaryQuery, getChartDataQuery, getTableDataQuery } from '../utils/sqlQueries';
 
 interface QueryParams {
   dateInterval?: string;
@@ -17,10 +18,19 @@ interface QueryParams {
 const getAttendanceSummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const { dateInterval, schedule, country, region, branch, category, group, subgroup } = req.query as QueryParams;
-    let query: any = {};
-    // Implement query logic based on filters
-    const stats = await AttendanceStats.findOne(query).sort({ date: -1 });
-    res.json(stats);
+    const date = new Date(dateInterval || Date.now());
+
+    const { rows } = await pool.query(getAttendanceSummaryQuery, [
+      date,
+      schedule || null,
+      country || null,
+      branch || null,
+      category || null,
+      group || null,
+      subgroup || null
+    ]);
+
+    res.json(rows[0]);
   } catch (error) {
     console.error('Error fetching attendance summary:', error);
     res.status(500).json({ message: 'Error fetching attendance summary' });
@@ -30,10 +40,8 @@ const getAttendanceSummary = async (req: Request, res: Response): Promise<void> 
 const getChartData = async (req: Request, res: Response): Promise<void> => {
   try {
     const { startDate, endDate } = req.query as { startDate: string; endDate: string };
-    const chartData = await AttendanceStats.find({
-      date: { $gte: new Date(startDate), $lte: new Date(endDate) }
-    }).sort({ date: 1 });
-    res.json(chartData);
+    const { rows } = await pool.query(getChartDataQuery, [startDate, endDate]);
+    res.json(rows);
   } catch (error) {
     console.error('Error fetching chart data:', error);
     res.status(500).json({ message: 'Error fetching chart data' });
@@ -42,8 +50,8 @@ const getChartData = async (req: Request, res: Response): Promise<void> => {
 
 const getTableData = async (req: Request, res: Response): Promise<void> => {
   try {
-    const tableData = await AttendanceStats.find().sort({ date: -1 }).limit(8);
-    res.json(tableData);
+    const { rows } = await pool.query(getTableDataQuery);
+    res.json(rows);
   } catch (error) {
     console.error('Error fetching table data:', error);
     res.status(500).json({ message: 'Error fetching table data' });
@@ -53,35 +61,33 @@ const getTableData = async (req: Request, res: Response): Promise<void> => {
 const exportAttendanceData = async (req: Request, res: Response): Promise<void> => {
   try {
     const { startDate, endDate } = req.query as { startDate: string; endDate: string };
-    const data = await AttendanceStats.find({
-      date: { $gte: new Date(startDate), $lte: new Date(endDate) }
-    }).sort({ date: 1 });
+    const { rows } = await pool.query(getChartDataQuery, [startDate, endDate]);
 
     const csvWriter = createObjectCsvWriter({
       path: path.resolve(__dirname, '../exports/attendance_stats.csv'),
       header: [
         { id: 'date', title: 'Date' },
-        { id: 'totalEmployees', title: 'Total Employees' },
-        { id: 'presentEmployees', title: 'Present Employees' },
-        { id: 'absentEmployees', title: 'Absent Employees' },
-        { id: 'lateEmployees', title: 'Late Employees' },
-        { id: 'earlyDepartures', title: 'Early Departures' },
-        { id: 'overtimeEmployees', title: 'Overtime Employees' },
-        { id: 'totalHours', title: 'Total Hours' },
-        { id: 'overtimeHours', title: 'Overtime Hours' },
+        { id: 'total_employees', title: 'Total Employees' },
+        { id: 'on_time', title: 'Present Employees' },
+        { id: 'absent', title: 'Absent Employees' },
+        { id: 'late_arrivals', title: 'Late Employees' },
+        { id: 'early_departures', title: 'Early Departures' },
+        { id: 'overtime_employees', title: 'Overtime Employees' },
+        { id: 'total_hours', title: 'Total Hours' },
+        { id: 'overtime_hours', title: 'Overtime Hours' },
       ]
     });
 
-    await csvWriter.writeRecords(data.map(stat => ({
+    await csvWriter.writeRecords(rows.map(stat => ({
       date: stat.date.toISOString().split('T')[0],
-      totalEmployees: stat.totalEmployees,
-      presentEmployees: stat.onTime,
-      absentEmployees: stat.absent,
-      lateEmployees: stat.lateArrivals,
-      earlyDepartures: stat.earlyDepartures,
-      overtimeEmployees: stat.overtimeEmployees || 0,
-      // totalHours: stat.totalHours,
-      overtimeHours: stat.overtimeHours,
+      total_employees: stat.total_employees,
+      on_time: stat.on_time,
+      absent: stat.absent,
+      late_arrivals: stat.late_arrivals,
+      early_departures: stat.early_departures,
+      overtime_employees: stat.overtime_employees,
+      total_hours: parseFloat(stat.total_hours).toFixed(2),
+      overtime_hours: parseFloat(stat.overtime_hours).toFixed(2),
     })));
 
     res.download(path.resolve(__dirname, '../exports/attendance_stats.csv'), 'attendance_stats.csv', (err) => {
@@ -102,3 +108,4 @@ export {
   getTableData,
   exportAttendanceData
 };
+

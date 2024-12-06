@@ -1,7 +1,57 @@
-import { pool } from '../db.js';
+import { Request, Response } from 'express';
+import { pool } from '../db';
 
-const getAttendanceReport = async (req, res) => {
-  const { startDate, endDate, userType, country, branch, category, group, subgroup } = req.query;
+interface AttendanceReport {
+  id: number;
+  name: string;
+  image_url: string | null;
+  country: string;
+  branch: string;
+  category: string | null;
+  group_name: string | null;
+  subgroup: string | null;
+  phone: string;
+  total_clock_ins: number;
+  total_clock_outs: number;
+  admin_clock_ins: number;
+  admin_clock_outs: number;
+  total_hours: number | null;
+  late_hours: number | null;
+  absent_days: number;
+  leave_days: number;
+  early_departures: number;
+}
+
+interface AttendanceBreakdown {
+  id: number;
+  name: string;
+  phone: string;
+  country: string;
+  branch: string;
+  category: string | null;
+  group_name: string | null;
+  subgroup: string | null;
+  date: string;
+  clock_in: string | null;
+  clock_out: string | null;
+  clocked_by: string | null;
+  status: string | null;
+  schedule: string | null;
+}
+
+// Function to generate attendance reports
+const getAttendanceReport = async (req: Request, res: Response): Promise<void> => {
+  const { startDate, endDate, userType, country, branch, category, group, subgroup } = req.query as {
+    startDate: string;
+    endDate: string;
+    userType?: string;
+    country?: string;
+    branch?: string;
+    category?: string;
+    group?: string;
+    subgroup?: string;
+  };
+
   try {
     let query = `
       SELECT 
@@ -24,7 +74,7 @@ const getAttendanceReport = async (req, res) => {
       WHERE 
         a.date BETWEEN $1 AND $2
     `;
-    const values = [startDate, endDate];
+    const values: (string | undefined)[] = [startDate, endDate];
     let valueIndex = 3;
 
     if (userType) {
@@ -54,15 +104,28 @@ const getAttendanceReport = async (req, res) => {
 
     query += ' GROUP BY u.id';
 
-    const { rows } = await pool.query(query, values);
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const { rows }: { rows: AttendanceReport[] } = await pool.query(query, values);
+
+    res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 };
 
-const getAttendanceBreakdown = async (req, res) => {
-  const { startDate, endDate, userId } = req.query;
+// Function to generate attendance breakdown for a specific user
+const getAttendanceBreakdown = async (req: Request, res: Response): Promise<void> => {
+  const { startDate, endDate, userId } = req.query as {
+    startDate: string;
+    endDate: string;
+    userId: string;
+  };
+
   try {
     const query = `
       SELECT 
@@ -80,10 +143,17 @@ const getAttendanceBreakdown = async (req, res) => {
       ORDER BY 
         a.date
     `;
-    const { rows } = await pool.query(query, [userId, startDate, endDate]);
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const { rows }: { rows: AttendanceBreakdown[] } = await pool.query(query, [userId, startDate, endDate]);
+
+    res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 };
 

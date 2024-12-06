@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../db.js';
+import { pool } from '../db';
 
 const getUsers = async (req: Request, res: Response): Promise<void> => {
   const { country, branch, category, group, subgroup, search } = req.query;
@@ -35,7 +35,7 @@ const getUsers = async (req: Request, res: Response): Promise<void> => {
 
     const { rows } = await pool.query(query, values);
     res.json(rows);
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -48,7 +48,7 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
       [name, email, role, country, branch, category, group_name, subgroup]
     );
     res.status(201).json(rows[0]);
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -66,7 +66,7 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     res.json(rows[0]);
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -80,7 +80,7 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     res.status(204).send();
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -107,7 +107,7 @@ const bulkCreateUsers = async (req: Request, res: Response): Promise<void> => {
     } finally {
       client.release();
     }
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };

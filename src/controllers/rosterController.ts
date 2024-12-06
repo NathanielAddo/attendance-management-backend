@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../db.js';
+import { pool } from '../db';
 
 const getRoster = async (_: Request, res: Response): Promise<void> => {
   try {

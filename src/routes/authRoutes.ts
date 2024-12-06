@@ -1,9 +1,10 @@
-const express = require('express');
-const { login, renewToken } = require('../controllers/authController');
+import express, { Request, Response } from 'express';
+import { login, renewToken } from '../controllers/authController';
 
 const router = express.Router();
 
-router.post('/login', (req, res) => login(req, res));
-router.post('/token-renewal', (req, res) => renewToken(req, res));
+// Define routes
+router.post('/login', (req: Request, res: Response) => login(req, res));
+router.post('/token-renewal', (req: Request, res: Response) => renewToken(req, res));
 
-module.exports = router;
+export default router;

@@ -1,4 +1,4 @@
-import { S3 } from 'aws-sdk';
+
 import s3 from './spaces';
 
 export async function logSpacesUsage() {

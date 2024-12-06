@@ -38,11 +38,17 @@ export const pool = new Pool({
         await pool.query(query);
         console.log(`Table dropped successfully: ${query}`);
       } catch (dropError) {
-        // If the error is related to a missing table (42P01), log and continue
-        if (dropError.code === '42P01') {
-          console.log(`Table does not exist, skipping: ${query}`);
+        // Ensure dropError is of a specific type
+        if (dropError instanceof Error) {
+          // If the error is related to a missing table (42P01), log and continue
+          const pgError = dropError as any; // Explicit cast to handle PostgreSQL-specific errors
+          if (pgError.code === '42P01') {
+            console.log(`Table does not exist, skipping: ${query}`);
+          } else {
+            console.error(`Error dropping table: ${dropError.message}`);
+          }
         } else {
-          console.error(`Error dropping table: ${dropError.message}`);
+          console.error('Unexpected error:', dropError);
         }
       }
     }

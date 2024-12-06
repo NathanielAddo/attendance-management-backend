@@ -21,7 +21,7 @@ const submitDeviceRequest = async (req: CustomRequest, res: Response): Promise<v
       status: rows[0].status,
       submittedAt: rows[0].created_at
     });
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -55,7 +55,7 @@ const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promis
       };
     });
     res.json(requests);
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -73,7 +73,7 @@ const cancelDeviceRequest = async (req: CustomRequest, res: Response): Promise<v
       return;
     }
     res.json({ message: 'Device approval request canceled successfully.', requestId: rows[0].id });
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };

@@ -23,7 +23,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
     const token = jwt.sign({ deviceId: device.id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
     res.json({ success: true, message: 'Authentication successful.', token, expiresIn: 3600 });
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };

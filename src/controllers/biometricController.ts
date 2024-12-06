@@ -22,7 +22,7 @@ const registerVoice = async (req: AuthenticatedRequest, res: Response): Promise<
       [userId, voiceData]
     );
     res.status(201).json({ message: 'Voice registered successfully.', voiceId: rows[0].id, uploadedAt: rows[0].created_at });
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -40,7 +40,7 @@ const registerImage = async (req: AuthenticatedRequest, res: Response): Promise<
       [userId, imageData]
     );
     res.status(201).json({ message: 'Image registered successfully.', imageId: rows[0].id, uploadedAt: rows[0].created_at });
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -62,7 +62,7 @@ const updateVoice = async (req: AuthenticatedRequest, res: Response): Promise<vo
       return;
     }
     res.json({ message: 'Voice updated successfully.', voiceId: rows[0].id, updatedAt: rows[0].updated_at });
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -84,7 +84,7 @@ const updateImage = async (req: AuthenticatedRequest, res: Response): Promise<vo
       return;
     }
     res.json({ message: 'Image updated successfully.', imageId: rows[0].id, updatedAt: rows[0].updated_at });
-  } catch (error) {
+  } catch (error:any) {
     res.status(500).json({ error: error.message });
   }
 };

@@ -4,19 +4,19 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { createAndUploadBundle, getBundleUrl, deleteBundle } from './bundleManager';
-import { pool } from './db';
-import userRoutes from './routes/userRoutes';
-import attendanceRoutes from './routes/attendanceRoutes';
-import rosterRoutes from './routes/rosterRoutes';
-import eventRoutes from './routes/eventRoutes';
-import scheduleRoutes from './routes/scheduleRoutes';
-import notificationRoutes from './routes/notificationRoutes';
-import biometricRoutes from './routes/biometricRoutes';
-import deviceRequestRoutes from './routes/deviceRequestRoutes';
-import locationRoutes from './routes/locationRoutes';
-import reportRoutes from './routes/reportRoutes';
-import offlineRoutes from './routes/offlineRoutes';
+import { createAndUploadBundle, getBundleUrl, deleteBundle } from './bundleManager.js';
+// import { pool } from './db';
+import userRoutes from './routes/userRoutes.js';
+import attendanceRoutes from './routes/attendanceRoutes.js';
+import rosterRoutes from './routes/rosterRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
+import scheduleRoutes from './routes/scheduleRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import biometricRoutes from './routes/biometricRoutes.js';
+import deviceRequestRoutes from './routes/deviceRequestRoutes.js';
+import locationRoutes from './routes/locationRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+import offlineRoutes from './routes/offlineRoutes.js';
 
 dotenv.config();
 
@@ -113,4 +113,16 @@ process.on('SIGTERM', () => {
     console.log('HTTP server closed');
     process.exit(0);
   });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });

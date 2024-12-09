@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../db';
+import nodemailer from 'nodemailer';
+import twilio from 'twilio';
 
 
 // Define the interface for a notification
@@ -185,6 +187,18 @@ const deleteNotification = async (req: Request, res: Response): Promise<void> =>
 };
 
 
+// Configure email transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Configure Twilio client
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
 const sendNotification = async (req: Request, res: Response): Promise<void> => {
   const { message, medium, userIds } = req.body as {
     message: string;
@@ -193,13 +207,33 @@ const sendNotification = async (req: Request, res: Response): Promise<void> => {
   };
 
   try {
-    // Placeholder for actual notification sending logic
-    // In a real-world scenario, integrate with SMS, email, or push notification services
-    console.log(`Sending ${medium} notification to users:`, userIds);
-    console.log('Message:', message);
+    // Fetch user contact details from the database
+    const { rows: users } = await pool.query('SELECT id, email, phone FROM users WHERE id = ANY($1)', [userIds]);
 
-    // Simulate notification sending with a delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (medium === 'Email') {
+      // Send email notifications
+      for (const user of users) {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: user.email,
+          subject: 'Notification',
+          text: message,
+        });
+      }
+    } else if (medium === 'SMS') {
+      // Send SMS notifications
+      for (const user of users) {
+        await twilioClient.messages.create({
+          body: message,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: user.phone,
+        });
+      }
+    } else if (medium === 'Push') {
+      // Placeholder for push notification logic
+      console.log(`Sending push notification to users:`, userIds);
+      console.log('Message:', message);
+    }
 
     res.status(200).json({
       success: true,

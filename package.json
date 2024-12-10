@@ -23,7 +23,6 @@
     "helmet": "^8.0.0",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^7.1.0",
     "node-cron": "^3.0.3", 
     "nodemailer": "^6.9.16",
     "pg": "^8.13.1",

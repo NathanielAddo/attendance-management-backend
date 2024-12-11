@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../db';
 import nodemailer from 'nodemailer';
-import twilio from 'twilio';
+import { sendSMS } from '../utils/smsService';
 
 
 // Define the interface for a notification
@@ -196,8 +196,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Configure Twilio client
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 const sendNotification = async (req: Request, res: Response): Promise<void> => {
   const { message, medium, userIds } = req.body as {
@@ -214,20 +212,16 @@ const sendNotification = async (req: Request, res: Response): Promise<void> => {
       // Send email notifications
       for (const user of users) {
         await transporter.sendMail({
-          from: process.env.EMAIL_USER,
+          from: process.env.GMAIL_USER,
           to: user.email,
           subject: 'Notification',
           text: message,
         });
       }
     } else if (medium === 'SMS') {
-      // Send SMS notifications
+      // Send SMS notifications using custom API
       for (const user of users) {
-        await twilioClient.messages.create({
-          body: message,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: user.phone,
-        });
+        await sendSMS(user.phone, message);
       }
     } else if (medium === 'Push') {
       // Placeholder for push notification logic
@@ -256,3 +250,4 @@ export {
   deleteNotification,
   sendNotification
 };
+

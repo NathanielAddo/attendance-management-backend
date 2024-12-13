@@ -1,22 +1,3 @@
--- Create the schedules table first (as it's referenced by attendance table)
-CREATE TABLE IF NOT EXISTS schedules (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  branch VARCHAR(100),
-  start_time TIME NOT NULL,
-  closing_time TIME NOT NULL,
-  assigned_users INTEGER,
-  locations VARCHAR(255),
-  duration VARCHAR(100)
-);
-
-
--- Create the schedule_participants table
-CREATE TABLE IF NOT EXISTS schedule_participants (
-  id SERIAL PRIMARY KEY,
-  schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
-);
 
 -- Create the users table
 CREATE TABLE IF NOT EXISTS users (
@@ -36,6 +17,27 @@ CREATE TABLE IF NOT EXISTS users (
   phone VARCHAR(20),
   last_login TIMESTAMP,  -- Optional: for tracking last login
   status VARCHAR(20) DEFAULT 'Active' -- Optional: to track user status (active/inactive)
+);
+
+
+-- Create the schedules table first (as it's referenced by attendance table)
+CREATE TABLE IF NOT EXISTS schedules (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  branch VARCHAR(100),
+  start_time TIME NOT NULL,
+  closing_time TIME NOT NULL,
+  assigned_users INTEGER,
+  locations VARCHAR(255),
+  duration VARCHAR(100)
+);
+
+
+-- Create the schedule_participants table
+CREATE TABLE IF NOT EXISTS schedule_participants (
+  id SERIAL PRIMARY KEY,
+  schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Create the attendance table (now it can reference schedules)

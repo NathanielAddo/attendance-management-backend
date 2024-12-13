@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../db';
 import nodemailer from 'nodemailer';
-import { sendSMS } from '../utils/smsService';
+// import { sendSMS } from '../utils/smsService';
 
 
 // Define the interface for a notification
@@ -220,9 +220,9 @@ const sendNotification = async (req: Request, res: Response): Promise<void> => {
       }
     } else if (medium === 'SMS') {
       // Send SMS notifications using custom API
-      for (const user of users) {
-        await sendSMS(user.phone, message);
-      }
+      // for (const user of users) {
+      //   await sendSMS(user.phone, message);
+      // }
     } else if (medium === 'Push') {
       // Placeholder for push notification logic
       console.log(`Sending push notification to users:`, userIds);

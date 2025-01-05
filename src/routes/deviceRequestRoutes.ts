@@ -1,33 +1,24 @@
 import express, { Response } from 'express';
-import {
-  submitDeviceRequest,
-  getDeviceRequestStatus,
-  cancelDeviceRequest,
-} from '../controllers/deviceRequestController';
-import { Request } from 'express';
-
-// Define AuthenticatedRequest extending Request
-export interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-  }; // Add custom properties here if needed
-}
+import { 
+  submitDeviceRequest, 
+  getDeviceRequestStatus, 
+  cancelDeviceRequest 
+} from '../controllers/deviceRequestController.js';
+import { verifyToken } from '../utils/verifyToken';
+import { AuthenticatedRequest } from '../types';
 
 const router = express.Router();
 
-// POST: Submit a device request
-router.post('/request-approval', (req: Request, res: Response) => {
-  submitDeviceRequest(req as AuthenticatedRequest, res);
+router.post('/request-approval', verifyToken, (req: AuthenticatedRequest, res: Response) => {
+  submitDeviceRequest(req, res);
 });
 
-// GET: Get the status of a device request
-router.get('/request-status', (req: Request, res: Response) => {
-  getDeviceRequestStatus(req as AuthenticatedRequest, res);
+router.get('/request-status', verifyToken, (req: AuthenticatedRequest, res: Response) => {
+  getDeviceRequestStatus(req, res);
 });
 
-// DELETE: Cancel a device request
-router.delete('/request-approval/:requestId', (req: Request, res: Response) => {
-  cancelDeviceRequest(req as AuthenticatedRequest, res);
+router.delete('/request-approval/:requestId', verifyToken, (req: AuthenticatedRequest, res: Response) => {
+  cancelDeviceRequest(req, res);
 });
 
 export default router;

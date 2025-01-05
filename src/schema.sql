@@ -1,6 +1,6 @@
 
 -- Create the users table
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS client_users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 
 -- Create the schedules table first (as it's referenced by attendance table)
-CREATE TABLE IF NOT EXISTS schedules (
+CREATE TABLE IF NOT EXISTS client_schedules (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   branch VARCHAR(100),
@@ -34,14 +34,14 @@ CREATE TABLE IF NOT EXISTS schedules (
 
 
 -- Create the schedule_participants table
-CREATE TABLE IF NOT EXISTS schedule_participants (
+CREATE TABLE IF NOT EXISTS client_schedule_participants (
   id SERIAL PRIMARY KEY,
   schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Create the attendance table (now it can reference schedules)
-CREATE TABLE IF NOT EXISTS attendance (
+CREATE TABLE IF NOT EXISTS client_attendance (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,  -- Ensure attendance is deleted when user is deleted
   date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS attendance (
 );
 
 -- Create the roster table
-CREATE TABLE IF NOT EXISTS roster (
+CREATE TABLE IF NOT EXISTS client_roster (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,  -- Ensure roster is deleted when user is deleted
   date DATE NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS roster (
 );
 
 -- Create the events table
-CREATE TABLE IF NOT EXISTS events (
+CREATE TABLE IF NOT EXISTS client_events (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   start_time TIME NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 -- Create the notification_templates table
-CREATE TABLE IF NOT EXISTS notification_templates (
+CREATE TABLE IF NOT EXISTS client_notification_templates (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   content TEXT NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS notification_templates (
 );
 
 -- Create the notifications table
-CREATE TABLE IF NOT EXISTS notifications (
+CREATE TABLE IF NOT EXISTS client_notifications (
   id SERIAL PRIMARY KEY,
   template_id INTEGER REFERENCES notification_templates(id) ON DELETE CASCADE,  -- Ensure notifications are deleted when template is deleted
   medium VARCHAR(20) CHECK (medium IN ('SMS', 'Voice', 'Email', 'In-app')),
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- Create the biometric_data table
-CREATE TABLE IF NOT EXISTS biometric_data (
+CREATE TABLE IF NOT EXISTS client_biometric_data (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,  -- Ensure biometric data is deleted when user is deleted
   voice_data BYTEA,
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS biometric_data (
 );
 
 -- Create the device_requests table
-CREATE TABLE IF NOT EXISTS device_requests (
+CREATE TABLE IF NOT EXISTS client_device_requests (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,  -- Ensure device requests are deleted when user is deleted
   device_info VARCHAR(255) NOT NULL,
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS device_requests (
 );
 
 -- Create the locations table
-CREATE TABLE IF NOT EXISTS locations (
+CREATE TABLE IF NOT EXISTS client_locations (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   address VARCHAR(255),
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS locations (
 );
 
 -- Create a second notification_templates table (for updating schema)
-CREATE TABLE IF NOT EXISTS notification_templates_v2 (
+CREATE TABLE IF NOT EXISTS client_notification_templates_v2 (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS notification_templates_v2 (
 );
 
 -- Create a second notifications table (for updating schema)
-CREATE TABLE IF NOT EXISTS notifications_v2 (
+CREATE TABLE IF NOT EXISTS client_notifications_v2 (
   id SERIAL PRIMARY KEY,
   template_id INTEGER REFERENCES notification_templates_v2(id) ON DELETE CASCADE,  -- Ensure notifications are deleted when template is deleted
   country VARCHAR(100),
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS notifications_v2 (
 );
 
 -- Create the notification_logs table
-CREATE TABLE IF NOT EXISTS notification_logs (
+CREATE TABLE IF NOT EXISTS client_notification_logs (
   id SERIAL PRIMARY KEY,
   notification_id INTEGER REFERENCES notifications_v2(id) ON DELETE CASCADE,  -- Ensure logs are deleted when notifications are deleted
   sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

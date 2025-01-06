@@ -1,25 +1,25 @@
-import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
+import { RequestHandler } from "express";
+import jwt from "jsonwebtoken";
+import { AuthenticatedRequest, CustomJwtPayload } from "../types/express";
 
-interface AuthRequest extends Request {
-  device?: { deviceId: string };
-}
+const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key";
 
-export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers.authorization;
+export const verifyToken: RequestHandler = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1]; // Expecting "Bearer <token>"
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ message: 'Authorization token missing or invalid' });
+  if (!token) {
+    res.status(401).json({ message: "Authorization token is required" });
     return;
   }
 
-  const token = authHeader.split(' ')[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { deviceId: string };
-    req.device = { deviceId: decoded.deviceId };
+    const decoded = jwt.verify(token, SECRET_KEY) as CustomJwtPayload;
+
+    // Attach `user` to the request object
+    (req as AuthenticatedRequest).user = decoded;
+
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token is invalid or expired' });
+    res.status(401).json({ message: "Invalid or expired token" });
   }
 };

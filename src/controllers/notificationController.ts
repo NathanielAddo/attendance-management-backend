@@ -21,7 +21,7 @@ interface Notification {
 // Function to get all notifications
 const getNotifications = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { rows }: { rows: Notification[] } = await pool.query('SELECT * FROM notifications');
+    const { rows }: { rows: Notification[] } = await pool.query('SELECT * FROM attendance_notifications');
 
     res.json({
       success: true,
@@ -64,7 +64,7 @@ const createNotification = async (req: Request, res: Response): Promise<void> =>
   try {
     const { rows }: { rows: Notification[] } = await pool.query(
       `
-      INSERT INTO notifications 
+      INSERT INTO attendance_notifications 
       (template_id, medium, alert_type, status, start_date, delivery_time, additional_text, recurring_status, user_type) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
       RETURNING *
@@ -115,7 +115,7 @@ const updateNotification = async (req: Request, res: Response): Promise<void> =>
   try {
     const { rows }: { rows: Notification[] } = await pool.query(
       `
-      UPDATE notifications 
+      UPDATE attendance_notifications 
       SET template_id = $1, medium = $2, alert_type = $3, status = $4, start_date = $5, 
           delivery_time = $6, additional_text = $7, recurring_status = $8, user_type = $9 
       WHERE id = $10 

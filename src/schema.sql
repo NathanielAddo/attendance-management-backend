@@ -1,6 +1,6 @@
 
 -- Create the users table
-CREATE TABLE IF NOT EXISTS client_users (
+CREATE TABLE IF NOT EXISTS attendance_users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS client_users (
 
 
 -- Create the schedules table first (as it's referenced by attendance table)
-CREATE TABLE IF NOT EXISTS client_schedules (
+CREATE TABLE IF NOT EXISTS attendance_schedules (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   branch VARCHAR(100),
@@ -34,16 +34,16 @@ CREATE TABLE IF NOT EXISTS client_schedules (
 
 
 -- Create the schedule_participants table
-CREATE TABLE IF NOT EXISTS client_schedule_participants (
+CREATE TABLE IF NOT EXISTS attendance_schedule_participants (
   id SERIAL PRIMARY KEY,
-  schedule_id INTEGER REFERENCES schedules(id) ON DELETE CASCADE,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+  schedule_id INTEGER REFERENCES attendance_schedules(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE
 );
 
 -- Create the attendance table (now it can reference schedules)
-CREATE TABLE IF NOT EXISTS client_attendance (
+CREATE TABLE IF NOT EXISTS attendance_attendance (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,  -- Ensure attendance is deleted when user is deleted
+  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,  -- Ensure attendance is deleted when user is deleted
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   clock_in_time TIME,  -- Changed here to clock_in_time instead of clock_in
   clock_out_time TIME,
@@ -54,19 +54,19 @@ CREATE TABLE IF NOT EXISTS client_attendance (
   clocked_by VARCHAR(50),
   device_info VARCHAR(255),  -- Adding device_info column
   schedule_id INTEGER,  -- Adding schedule_id column
-  CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE SET NULL  -- Foreign key to schedules table with cascade option
+  CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES attendance_schedules(id) ON DELETE SET NULL  -- Foreign key to schedules table with cascade option
 );
 
 -- Create the roster table
-CREATE TABLE IF NOT EXISTS client_roster (
+CREATE TABLE IF NOT EXISTS attendance_roster (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,  -- Ensure roster is deleted when user is deleted
+  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,  -- Ensure roster is deleted when user is deleted
   date DATE NOT NULL,
   shift VARCHAR(50) NOT NULL
 );
 
 -- Create the events table
-CREATE TABLE IF NOT EXISTS client_events (
+CREATE TABLE IF NOT EXISTS attendance_events (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   start_time TIME NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS client_events (
 );
 
 -- Create the notification_templates table
-CREATE TABLE IF NOT EXISTS client_notification_templates (
+CREATE TABLE IF NOT EXISTS attendance_notification_templates (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   content TEXT NOT NULL,
@@ -85,9 +85,9 @@ CREATE TABLE IF NOT EXISTS client_notification_templates (
 );
 
 -- Create the notifications table
-CREATE TABLE IF NOT EXISTS client_notifications (
+CREATE TABLE IF NOT EXISTS attendance_notifications (
   id SERIAL PRIMARY KEY,
-  template_id INTEGER REFERENCES notification_templates(id) ON DELETE CASCADE,  -- Ensure notifications are deleted when template is deleted
+  template_id INTEGER REFERENCES attendance_notification_templates(id) ON DELETE CASCADE,  -- Ensure notifications are deleted when template is deleted
   medium VARCHAR(20) CHECK (medium IN ('SMS', 'Voice', 'Email', 'In-app')),
   alert_type VARCHAR(20) CHECK (alert_type IN ('Recurring', 'Non-recurring')),
   status VARCHAR(20) DEFAULT 'Active',
@@ -99,24 +99,24 @@ CREATE TABLE IF NOT EXISTS client_notifications (
 );
 
 -- Create the biometric_data table
-CREATE TABLE IF NOT EXISTS client_biometric_data (
+CREATE TABLE IF NOT EXISTS attendance_biometric_data (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,  -- Ensure biometric data is deleted when user is deleted
+  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,  -- Ensure biometric data is deleted when user is deleted
   voice_data BYTEA,
   image_data BYTEA
 );
 
 -- Create the device_requests table
-CREATE TABLE IF NOT EXISTS client_device_requests (
+CREATE TABLE IF NOT EXISTS attendance_device_requests (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,  -- Ensure device requests are deleted when user is deleted
+  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,  -- Ensure device requests are deleted when user is deleted
   device_info VARCHAR(255) NOT NULL,
   status VARCHAR(20) CHECK (status IN ('pending', 'approved', 'denied')),
   request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create the locations table
-CREATE TABLE IF NOT EXISTS client_locations (
+CREATE TABLE IF NOT EXISTS attendance_locations (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   address VARCHAR(255),
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS client_locations (
 );
 
 -- Create a second notification_templates table (for updating schema)
-CREATE TABLE IF NOT EXISTS client_notification_templates_v2 (
+CREATE TABLE IF NOT EXISTS attendance_notification_templates_v2 (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
@@ -138,9 +138,9 @@ CREATE TABLE IF NOT EXISTS client_notification_templates_v2 (
 );
 
 -- Create a second notifications table (for updating schema)
-CREATE TABLE IF NOT EXISTS client_notifications_v2 (
+CREATE TABLE IF NOT EXISTS attendance_notifications_v2 (
   id SERIAL PRIMARY KEY,
-  template_id INTEGER REFERENCES notification_templates_v2(id) ON DELETE CASCADE,  -- Ensure notifications are deleted when template is deleted
+  template_id INTEGER REFERENCES attendance_notification_templates_v2(id) ON DELETE CASCADE,  -- Ensure notifications are deleted when template is deleted
   country VARCHAR(100),
   branch VARCHAR(100),
   category VARCHAR(100),
@@ -160,10 +160,10 @@ CREATE TABLE IF NOT EXISTS client_notifications_v2 (
 );
 
 -- Create the notification_logs table
-CREATE TABLE IF NOT EXISTS client_notification_logs (
+CREATE TABLE IF NOT EXISTS attendance_notification_logs (
   id SERIAL PRIMARY KEY,
-  notification_id INTEGER REFERENCES notifications_v2(id) ON DELETE CASCADE,  -- Ensure logs are deleted when notifications are deleted
+  notification_id INTEGER REFERENCES attendance_notifications_v2(id) ON DELETE CASCADE,  -- Ensure logs are deleted when notifications are deleted
   sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  sent_to INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  sent_to INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,
   status VARCHAR(20)
 );

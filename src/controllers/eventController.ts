@@ -18,7 +18,7 @@ const getEvents = async (req: Request, res: Response): Promise<void> => {
     branch?: string;
   };
   try {
-    let query = 'SELECT * FROM events WHERE 1=1';
+    let query = 'SELECT * FROM attendance_events WHERE 1=1';
     const values: (string | undefined)[] = [];
     let valueIndex = 1;
 
@@ -46,7 +46,7 @@ const createEvent = async (req: Request, res: Response): Promise<void> => {
   const { name, start_time, end_time, date, country, branch } = req.body as Event;
   try {
     const { rows } = await pool.query(
-      'INSERT INTO events (name, start_time, end_time, date, country, branch) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      'INSERT INTO attendance_events (name, start_time, end_time, date, country, branch) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [name, start_time, end_time, date, country, branch]
     );
     res.status(201).json(rows[0]);
@@ -60,7 +60,7 @@ const updateEvent = async (req: Request, res: Response): Promise<void> => {
   const { name, start_time, end_time, date, country, branch } = req.body as Event;
   try {
     const { rows } = await pool.query(
-      'UPDATE events SET name = $1, start_time = $2, end_time = $3, date = $4, country = $5, branch = $6 WHERE id = $7 RETURNING *',
+      'UPDATE attendance_events SET name = $1, start_time = $2, end_time = $3, date = $4, country = $5, branch = $6 WHERE id = $7 RETURNING *',
       [name, start_time, end_time, date, country, branch, id]
     );
     if (rows.length === 0) {
@@ -76,7 +76,7 @@ const updateEvent = async (req: Request, res: Response): Promise<void> => {
 const deleteEvent = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
-    const { rowCount } = await pool.query('DELETE FROM events WHERE id = $1', [id]);
+    const { rowCount } = await pool.query('DELETE FROM attendance_events WHERE id = $1', [id]);
     if (rowCount === 0) {
       res.status(404).json({ message: 'Event not found' });
       return;
@@ -100,7 +100,7 @@ const bulkCreateEvents = async (req: Request, res: Response): Promise<void> => {
       const createdEvents: Event[] = [];
       for (const event of events) {
         const { rows } = await client.query(
-          'INSERT INTO events (name, start_time, end_time, date, country, branch) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          'INSERT INTO attendance_events (name, start_time, end_time, date, country, branch) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
           [event.name, event.start_time, event.end_time, event.date, event.country, event.branch]
         );
         createdEvents.push(rows[0]);

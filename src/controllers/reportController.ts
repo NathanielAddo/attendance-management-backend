@@ -66,11 +66,11 @@ const getAttendanceReport = async (req: Request, res: Response): Promise<void> =
         COUNT(CASE WHEN a.status = 'Time Off' THEN 1 END) as leave_days,
         COUNT(CASE WHEN a.status = 'Early Departure' THEN 1 END) as early_departures
       FROM 
-        users u
+        attendance_attendance_users u
       LEFT JOIN 
-        attendance a ON u.id = a.user_id
+        attendance_attendance a ON u.id = a.user_id
       LEFT JOIN 
-        schedules s ON u.id = s.assigned_users
+        attendance_attendance_schedules s ON u.id = s.assigned_users
       WHERE 
         a.date BETWEEN $1 AND $2
     `;
@@ -135,9 +135,9 @@ const getAttendanceBreakdown = async (req: Request, res: Response): Promise<void
       FROM 
         users u
       LEFT JOIN 
-        attendance a ON u.id = a.user_id
+        attendance_attendance a ON u.id = a.user_id
       LEFT JOIN 
-        schedules s ON u.id = s.assigned_users
+        attendance_attendance_schedules s ON u.id = s.assigned_users
       WHERE 
         u.id = $1 AND a.date BETWEEN $2 AND $3
       ORDER BY 

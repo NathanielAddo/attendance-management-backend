@@ -27,7 +27,7 @@ const getSchedules = async (req: Request, res: Response): Promise<void> => {
   };
 
   try {
-    let query = 'SELECT * FROM schedules WHERE date = $1';
+    let query = 'SELECT * FROM attendance_schedules WHERE date = $1';
     const values: (string | number)[] = [date];
     let valueIndex = 2;
 
@@ -62,7 +62,7 @@ const getClockInLimit = async (req: Request, res: Response): Promise<void> => {
 
   try {
     const { rows }: { rows: ScheduleClockInLimit[] } = await pool.query(
-      'SELECT id as schedule_id, title, date, clock_in_limit FROM schedules WHERE id = $1',
+      'SELECT id as schedule_id, title, date, clock_in_limit FROM attendance_schedules WHERE id = $1',
       [parseInt(scheduleId)]
     );
 

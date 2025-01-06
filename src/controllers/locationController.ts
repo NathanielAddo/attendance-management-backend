@@ -21,7 +21,7 @@ interface Location {
 
 const getLocations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { rows }: { rows: Location[] } = await pool.query('SELECT * FROM locations');
+    const { rows }: { rows: Location[] } = await pool.query('SELECT * FROM attendance_locations');
 
     res.json({
       success: true,
@@ -50,7 +50,7 @@ const createLocation = async (req: Request, res: Response): Promise<void> => {
 
   try {
     const { rows }: { rows: Location[] } = await pool.query(
-      'INSERT INTO locations (name, address, coordinates, radius, country, branch) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      'INSERT INTO attendance_locations (name, address, coordinates, radius, country, branch) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [name, address, coordinates, radius, country, branch]
     );
 
@@ -84,7 +84,7 @@ const updateLocation = async (req: Request, res: Response): Promise<void> => {
   try {
     const { rows }: { rows: Location[] } = await pool.query(
       `
-      UPDATE locations 
+      UPDATE attendance_locations 
       SET name = $1, address = $2, coordinates = $3, radius = $4, country = $5, branch = $6 
       WHERE id = $7 
       RETURNING *
@@ -121,7 +121,7 @@ const deleteLocation = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params as { id: string };
 
   try {
-    const result = await pool.query('DELETE FROM locations WHERE id = $1', [id]);
+    const result = await pool.query('DELETE FROM attendance_locations WHERE id = $1', [id]);
     const rowCount: number = result.rowCount ?? 0; // Safely handle null
 
     if (rowCount === 0) {

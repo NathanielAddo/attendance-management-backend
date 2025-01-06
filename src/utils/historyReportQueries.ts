@@ -12,11 +12,11 @@ export const getSummaryReportQuery = `
     0 as "breakOverstayHrs",
     SUM(CASE WHEN a.status = 'Early Departure' THEN EXTRACT(EPOCH FROM (s.closing_time - a.clock_out_time))/3600 ELSE 0 END) as "clockOutBeforeTimeHrs"
   FROM 
-    users u
+    attendance_users u
   LEFT JOIN 
     attendance a ON u.id = a.user_id
   LEFT JOIN 
-    schedules s ON a.schedule_id = s.id
+    attendance_schedules s ON a.schedule_id = s.id
   WHERE 
     a.date BETWEEN $1 AND $2
     AND ($3::varchar IS NULL OR u.role = $3)
@@ -42,11 +42,11 @@ export const getBreakdownReportQuery = `
     0 as "breakOverstayHours",
     CASE WHEN a.status = 'Early Departure' THEN EXTRACT(EPOCH FROM (s.closing_time - a.clock_out_time))/3600 ELSE 0 END as "earlyDepartureHours"
   FROM 
-    users u
+    attendance_users u
   LEFT JOIN 
     attendance a ON u.id = a.user_id
   LEFT JOIN 
-    schedules s ON a.schedule_id = s.id
+    attendance_schedules s ON a.schedule_id = s.id
   WHERE 
     a.date BETWEEN $1 AND $2
     AND ($3::varchar IS NULL OR u.role = $3)
@@ -62,7 +62,7 @@ export const getBreakdownReportQuery = `
 `;
 
 export const validateUsersQuery = `
-  UPDATE users
+  UPDATE attendance_users
   SET validated = true, validated_by = $1
   WHERE id = ANY($2::int[])
   RETURNING id

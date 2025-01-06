@@ -8,9 +8,9 @@ export const getAttendanceSummaryQuery = `
     SUM(EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600) as total_hours,
     SUM(CASE WHEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 > 8 THEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 - 8 ELSE 0 END) as overtime_hours,
     COUNT(CASE WHEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 > 8 THEN 1 END) as overtime_employees
-  FROM attendance a
-  JOIN users u ON a.user_id = u.id
-  JOIN schedules s ON a.schedule_id = s.id
+  FROM attendance_attendance a
+  JOIN attendance_attendance_users u ON a.user_id = u.id
+  JOIN attendance_attendance_schedules s ON a.schedule_id = s.id
   WHERE a.date = $1
     AND ($2::varchar IS NULL OR s.name = $2)
     AND ($3::varchar IS NULL OR u.country = $3)
@@ -31,7 +31,7 @@ export const getChartDataQuery = `
     SUM(EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600) as total_hours,
     SUM(CASE WHEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 > 8 THEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 - 8 ELSE 0 END) as overtime_hours,
     COUNT(CASE WHEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 > 8 THEN 1 END) as overtime_employees
-  FROM attendance a
+  FROM attendance_attendance a
   WHERE a.date BETWEEN $1 AND $2
   GROUP BY a.date
   ORDER BY a.date ASC
@@ -48,7 +48,7 @@ export const getTableDataQuery = `
     SUM(EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600) as total_hours,
     SUM(CASE WHEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 > 8 THEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 - 8 ELSE 0 END) as overtime_hours,
     COUNT(CASE WHEN EXTRACT(EPOCH FROM (a.clock_out_time - a.clock_in_time))/3600 > 8 THEN 1 END) as overtime_employees
-  FROM attendance a
+  FROM attendance_attendance a
   GROUP BY a.date
   ORDER BY a.date DESC
   LIMIT 8

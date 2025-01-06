@@ -12,7 +12,7 @@ const submitDeviceRequest = async (req: CustomRequest, res: Response): Promise<v
   const userId = req.user.id;
   try {
     const { rows } = await pool.query(
-      'INSERT INTO device_requests (user_id, device_info, status) VALUES ($1, $2, $3) RETURNING *',
+      'INSERT INTO attendance_device_requests (user_id, device_info, status) VALUES ($1, $2, $3) RETURNING *',
       [userId, JSON.stringify(deviceInfo), 'pending']
     );
     res.status(201).json({
@@ -30,7 +30,7 @@ const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promis
   const userId = req.user.id;
   const { requestId } = req.query;
   try {
-    let query = 'SELECT * FROM device_requests WHERE user_id = $1';
+    let query = 'SELECT * FROM attendance_device_requests WHERE user_id = $1';
     const values: (string | number)[] = [userId];
     if (requestId) {
       query += ' AND id = $2';
@@ -65,7 +65,7 @@ const cancelDeviceRequest = async (req: CustomRequest, res: Response): Promise<v
   const userId = req.user.id;
   try {
     const { rows } = await pool.query(
-      'DELETE FROM device_requests WHERE id = $1 AND user_id = $2 AND status = $3 RETURNING *',
+      'DELETE FROM attendance_device_requests WHERE id = $1 AND user_id = $2 AND status = $3 RETURNING *',
       [requestId, userId, 'pending']
     );
     if (rows.length === 0) {

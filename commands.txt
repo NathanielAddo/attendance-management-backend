@@ -1,0 +1,2 @@
+rsync -avz --exclude 'node_modules' --exclude 'src' --exclude '.git' ~/Documents/GitHub/attendance-management-backend/ root@144.126.202.27:/var/www/attendance-module
+

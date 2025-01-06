@@ -33,7 +33,7 @@ const syncOfflineData = async (req: Request, res: Response): Promise<void> => {
       for (const log of logs) {
         try {
           const { rows } = await client.query(
-            'INSERT INTO attendance (user_id, schedule_id, clock_in_time, clock_out_time, location, device_info) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+            'INSERT INTO attendance_attendance (user_id, schedule_id, clock_in_time, clock_out_time, location, device_info) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
             [log.userId, log.scheduleId, log.timestamp, log.action === 'clock-out' ? log.timestamp : null, JSON.stringify(log.location), JSON.stringify(log.deviceInfo)]
           );
           syncedLogs.push({ logId: log.logId, status: 'Synced' });
@@ -58,7 +58,7 @@ const syncOfflineData = async (req: Request, res: Response): Promise<void> => {
 const getSyncStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { rows } = await pool.query('SELECT MAX(synced_at) as last_synced_at FROM sync_logs');
-    const pendingLogs = await pool.query('SELECT COUNT(*) as count FROM attendance WHERE synced = false');
+    const pendingLogs = await pool.query('SELECT COUNT(*) as count FROM attendance_attendance WHERE synced = false');
     res.json({
       success: true,
       data: {

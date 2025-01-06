@@ -5,7 +5,7 @@ async function testSystem() {
     // Test bundle creation and serving
     const response = await axios.get('http://localhost:3000/api/query/test_query', {
       params: {
-        query: 'SELECT * FROM users LIMIT 10',
+        query: 'SELECT * FROM attendance_attendance_users LIMIT 10',
       },
     });
 

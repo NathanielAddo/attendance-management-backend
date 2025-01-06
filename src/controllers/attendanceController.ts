@@ -47,9 +47,9 @@ const getAttendees = async (req: Request, res: Response): Promise<void> => {
   try {
     let query = `
       SELECT u.id as user_id, u.name, a.status, a.clock_in_time, a.clock_out_time
-      FROM users u
-      LEFT JOIN attendance a ON u.id = a.user_id AND a.schedule_id = $1 AND a.date = $2
-      WHERE u.id IN (SELECT user_id FROM schedule_participants WHERE schedule_id = $1)
+      FROM attendance_attendance_users u
+      LEFT JOIN attendance_attendance a ON u.id = a.user_id AND a.schedule_id = $1 AND a.date = $2
+      WHERE u.id IN (SELECT user_id FROM attendance_attendance_schedule_participants WHERE schedule_id = $1)
     `;
     const values: (string | undefined)[] = [scheduleId, date];
 
@@ -83,9 +83,9 @@ const getAbsentees = async (req: Request, res: Response): Promise<void> => {
   try {
     const query = `
       SELECT u.id as user_id, u.name, a.reason
-      FROM users u
-      LEFT JOIN attendance a ON u.id = a.user_id AND a.schedule_id = $1 AND a.date = $2
-      WHERE u.id IN (SELECT user_id FROM schedule_participants WHERE schedule_id = $1)
+      FROM attendance_attendance_users u
+      LEFT JOIN attendance_attendance a ON u.id = a.user_id AND a.schedule_id = $1 AND a.date = $2
+      WHERE u.id IN (SELECT user_id FROM attendance_attendance_schedule_participants WHERE schedule_id = $1)
       AND (a.status IS NULL OR a.status = 'Absent')
     `;
     const { rows }: { rows: Absentee[] } = await pool.query(query, [scheduleId, date]);
@@ -121,7 +121,7 @@ const clockIn = async (req: Request, res: Response): Promise<void> => {
 
     const { rows }: { rows: AttendanceRecord[] } = await pool.query(
       `
-      INSERT INTO attendance 
+      INSERT INTO attendance_attendance 
         (user_id, schedule_id, clock_in_time, location, device_info) 
       VALUES 
         ($1, $2, $3::TIME, $4, $5) 
@@ -157,7 +157,7 @@ const validateClockIn = async (req: Request, res: Response): Promise<void> => {
   try {
     // Query the schedule by ID
     const { rows }: { rows: Schedule[] } = await pool.query(
-      'SELECT * FROM schedules WHERE id = $1',
+      'SELECT * FROM attendance_attendance_schedules WHERE id = $1',
       [scheduleId]
     );
 
@@ -211,7 +211,7 @@ const clockOut = async (req: Request, res: Response): Promise<void> => {
   try {
     const { rows }: { rows: AttendanceRecord[] } = await pool.query(
       `
-      UPDATE attendance 
+      UPDATE attendance_attendance 
       SET clock_out_time = $1, location = $2, device_info = $3 
       WHERE user_id = $4 AND schedule_id = $5 
       RETURNING *
@@ -254,7 +254,7 @@ const validateClockOut = async (req: Request, res: Response): Promise<void> => {
   try {
     // Fetch schedule details from the database
     const { rows }: { rows: Schedule[] } = await pool.query(
-      'SELECT * FROM schedules WHERE id = $1',
+      'SELECT * FROM attendance_attendance_schedules WHERE id = $1',
       [scheduleId]
     );
 
@@ -312,7 +312,7 @@ const getClockingRecords = async (req: Request, res: Response): Promise<void> =>
 
   try {
     const { rows }: { rows: AttendanceRecord[] } = await pool.query(
-      'SELECT * FROM attendance WHERE schedule_id = $1',
+      'SELECT * FROM attendance_attendance WHERE schedule_id = $1',
       [scheduleId]
     );
 
@@ -333,7 +333,7 @@ const getUserClockingRecord = async (req: Request, res: Response): Promise<void>
 
   try {
     const { rows }: { rows: AttendanceRecord[] } = await pool.query(
-      'SELECT * FROM attendance WHERE schedule_id = $1 AND user_id = $2',
+      'SELECT * FROM attendance_attendance WHERE schedule_id = $1 AND user_id = $2',
       [scheduleId, userId]
     );
 
@@ -362,7 +362,7 @@ const exportClockingRecords = async (req: Request, res: Response): Promise<void>
 
   try {
     const { rows }: { rows: AttendanceRecord[] } = await pool.query(
-      'SELECT * FROM attendance WHERE schedule_id = $1',
+      'SELECT * FROM attendance_attendance WHERE schedule_id = $1',
       [scheduleId]
     );
 

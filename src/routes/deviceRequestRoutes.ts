@@ -4,14 +4,14 @@ import {
   getDeviceRequestStatus, 
   cancelDeviceRequest 
 } from "../controllers/deviceRequestController.js";
-import { verifyToken } from "../utils/verifyToken";
+import { authenticate } from '../middlewares/auth.middleware';
 import { AuthenticatedRequest } from "../types/express";
 
 const router = express.Router();
 
 router.post(
   "/request-approval",
-  verifyToken,
+  authenticate,
   (req, res) => {
     // Assert that `req` is an AuthenticatedRequest
     const authenticatedReq = req as AuthenticatedRequest;
@@ -21,7 +21,7 @@ router.post(
 
 router.get(
   "/request-status",
-  verifyToken,
+  authenticate,
   (req, res) => {
     // Assert that `req` is an AuthenticatedRequest
     const authenticatedReq = req as AuthenticatedRequest;
@@ -31,7 +31,7 @@ router.get(
 
 router.delete(
   "/request-approval/:requestId",
-  verifyToken,
+  authenticate,
   (req, res) => {
     // Assert that `req` is an AuthenticatedRequest
     const authenticatedReq = req as AuthenticatedRequest;

@@ -1,10 +1,10 @@
 import express from 'express';
-import { verifyToken } from '../utils/verifyToken';
+import { authenticate } from '../middlewares/auth.middleware';
 import { syncOfflineData, getSyncStatus } from '../controllers/offlineController.js';
 
 const router = express.Router();
 
-router.post('/sync', verifyToken, (req, res) => syncOfflineData(req, res));
-router.get('/sync/status', verifyToken, (req, res) => getSyncStatus(req, res));
+router.post('/sync', authenticate, (req, res) => syncOfflineData(req, res));
+router.get('/sync/status', authenticate, (req, res) => getSyncStatus(req, res));
 
 export default router;

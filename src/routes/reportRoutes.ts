@@ -1,10 +1,10 @@
 import express from 'express';
-import { verifyToken } from '../utils/verifyToken';
+import { authenticate } from '../middlewares/auth.middleware';
 import { getAttendanceReport, getAttendanceBreakdown } from '../controllers/reportController.js';
 
 const router = express.Router();
 
-router.get('/attendance', verifyToken, (req, res) => getAttendanceReport(req, res));
-router.get('/attendance/breakdown', verifyToken, (req, res) => getAttendanceBreakdown(req, res));
+router.get('/attendance', authenticate, (req, res) => getAttendanceReport(req, res));
+router.get('/attendance/breakdown', authenticate, (req, res) => getAttendanceBreakdown(req, res));
 
 export default router;

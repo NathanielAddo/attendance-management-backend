@@ -14,7 +14,7 @@ const caCertificatePath = path.resolve(__dirname, "../ca-certificate.crt");
 let caCert;
 try {
   caCert = fs.readFileSync(caCertificatePath, "utf8");
-} catch (error) {
+} catch (error:any) {
   console.error("Error reading CA certificate:", error.message);
   process.exit(1);
 }
@@ -32,7 +32,7 @@ export const pool = new Pool({
   },
   max: 10, // Limit the maximum number of connections
   idleTimeoutMillis: 30000, // Time before idle connections are closed
-  logging: process.env.DB_LOGGING === "true", // Conditional logging based on env
+  // logging: process.env.DB_LOGGING === "true", // Conditional logging based on env
 });
 
 // Test the database connection
@@ -41,7 +41,7 @@ export const pool = new Pool({
     const client = await pool.connect();
     console.log("Database connection successful.");
     client.release();
-  } catch (error) {
+  } catch (error:any) {
     console.error("Database connection failed:", error.message);
     process.exit(1);
   }
@@ -54,7 +54,7 @@ export const pool = new Pool({
     const schema = await readFile(sqlPath, "utf8");
     await pool.query(schema);
     console.log("Schema applied successfully.");
-  } catch (error) {
+  } catch (error:any) {
     console.error("Error applying schema:", error.message);
   }
 })();

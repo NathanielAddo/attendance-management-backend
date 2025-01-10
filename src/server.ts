@@ -23,16 +23,38 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 6000;
 
+// Define allowed origins for CORS
+const allowedOrigins = [
+  "https://super.akwaabahr.com",
+  "https://akwaabahr.com",
+  "https://symmetrical-xylophone-wrr9gqj97p6v3vxq-3000.app.github.dev",
+];
+
+// Custom CORS Middleware
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true); // Allow request
+      } else {
+        callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Custom-Header"],
+    credentials: true, // Allow credentials (cookies, authorization headers)
+  })
+);
+
 // Middleware
 app.use(compression());
-app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // Limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
@@ -58,19 +80,14 @@ app.get('/api/query/:queryName', async (req: Request, res: Response) => {
   }
 
   try {
-    // Check if bundle exists
     const existingBundleName = `${queryName}_${Date.now() - 24 * 60 * 60 * 1000}.json.gz`;
     const existingBundleUrl = await getBundleUrl(existingBundleName);
 
     if (existingBundleUrl) {
-      // Serve existing bundle
       return res.redirect(existingBundleUrl);
     }
 
-    // Create and upload new bundle
     const { bundleName, publicUrl } = await createAndUploadBundle(queryName, query as string, params as any[]);
-
-    // Serve new bundle
     res.redirect(publicUrl);
   } catch (error) {
     console.error('Error processing query:', error);

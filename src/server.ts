@@ -17,6 +17,7 @@ import deviceRequestRoutes from './routes/deviceRequestRoutes';
 import locationRoutes from './routes/locationRoutes';
 import reportRoutes from './routes/reportRoutes';
 import offlineRoutes from './routes/offlineRoutes';
+import adminScheduleRoutes from './routes/adminScheduleRoute'
 
 dotenv.config();
 
@@ -70,6 +71,7 @@ app.use('/api/device-requests', deviceRequestRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/offline', offlineRoutes);
+app.use('/api/admin-schedule', adminScheduleRoutes);
 
 app.get('/api/query/:queryName', async (req: Request, res: Response) => {
   const { queryName } = req.params;

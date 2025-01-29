@@ -1,4 +1,3 @@
-
 -- Create the users table
 CREATE TABLE IF NOT EXISTS attendance_users (
   id SERIAL PRIMARY KEY,
@@ -19,8 +18,7 @@ CREATE TABLE IF NOT EXISTS attendance_users (
   status VARCHAR(20) DEFAULT 'Active' -- Optional: to track user status (active/inactive)
 );
 
-
--- Create the schedules table first (as it's referenced by attendance table)
+-- Create the schedules table
 CREATE TABLE IF NOT EXISTS attendance_schedules (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -32,7 +30,6 @@ CREATE TABLE IF NOT EXISTS attendance_schedules (
   duration VARCHAR(100)
 );
 
-
 -- Create the schedule_participants table
 CREATE TABLE IF NOT EXISTS attendance_schedule_participants (
   id SERIAL PRIMARY KEY,
@@ -40,7 +37,7 @@ CREATE TABLE IF NOT EXISTS attendance_schedule_participants (
   user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE
 );
 
--- Create the attendance table (now it can reference schedules)
+-- Create the attendance table
 CREATE TABLE IF NOT EXISTS attendance_attendance (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,  -- Ensure attendance is deleted when user is deleted
@@ -81,7 +78,7 @@ CREATE TABLE IF NOT EXISTS attendance_notification_templates (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   content TEXT NOT NULL,
-  variables TEXT[]
+  variables TEXT[] -- Variables could be placeholders for dynamic content
 );
 
 -- Create the notifications table

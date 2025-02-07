@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { createAndUploadBundle, getBundleUrl, deleteBundle } from './bundleManager';
-// import { pool } from './db';
+import { pool } from './db';
 import userRoutes from './routes/userRoutes';
 import attendanceRoutes from './routes/attendanceRoutes';
 import rosterRoutes from './routes/rosterRoutes';
@@ -22,7 +22,7 @@ import adminScheduleRoutes from './routes/adminScheduleRoute'
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 5178;
 
 // Define allowed origins for CORS
 const allowedOrigins = [

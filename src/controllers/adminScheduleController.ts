@@ -28,19 +28,44 @@ export const getScheduleById = async (req: Request, res: Response) => {
 };
 
 // Create a new schedule
+// Create a new schedule
+// Create a new schedule
 export const createSchedule = async (req: Request, res: Response) => {
   try {
     const { name, branch, start_time, closing_time, assigned_users, locations, duration } = req.body;
+
+    // First, insert the schedule into attendance_schedules
     const result = await pool.query(
-      "INSERT INTO attendance_schedules (name, branch, start_time, closing_time, assigned_users, locations, duration) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [name, branch, start_time, closing_time, assigned_users, locations, duration]
+      "INSERT INTO attendance_schedules (name, branch, start_time, closing_time, locations, duration) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+      [name, branch, start_time, closing_time, locations, duration]
     );
+
+    const scheduleId = result.rows[0].id;
+
+    // Now insert each assigned user into the attendance_schedule_participants table
+    if (Array.isArray(assigned_users)) {
+      for (const userId of assigned_users) {
+        // Ensure userId is a number
+        if (typeof userId !== "number") {
+          return res.status(400).json({ message: "Each user ID must be a number" });
+        }
+
+        // Insert each user into the attendance_schedule_participants table
+        await pool.query(
+          "INSERT INTO attendance_schedule_participants (schedule_id, user_id) VALUES ($1, $2)",
+          [scheduleId, userId]
+        );
+      }
+    }
+
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error("Error creating schedule:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+
 
 // Update schedule
 export const updateSchedule = async (req: Request, res: Response) => {

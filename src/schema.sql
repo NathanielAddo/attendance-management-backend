@@ -1,58 +1,44 @@
--- Create the users table
+-- Create Users Table
 CREATE TABLE IF NOT EXISTS attendance_users (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  role VARCHAR(50) NOT NULL,
-  country VARCHAR(100),
-  branch VARCHAR(100),
-  category VARCHAR(100),
-  group_name VARCHAR(100),
-  subgroup VARCHAR(100),
-  image_url VARCHAR(255),
-  voice_status VARCHAR(20) DEFAULT 'Empty',
-  image_status VARCHAR(20) DEFAULT 'Empty',
-  registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  phone VARCHAR(20),
-  last_login TIMESTAMP,  -- Optional: for tracking last login
-  status VARCHAR(20) DEFAULT 'Active' -- Optional: to track user status (active/inactive)
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  email VARCHAR(100) UNIQUE,
+  phone_number VARCHAR(20),
+  role VARCHAR(50) CHECK (role IN ('Employee', 'Manager', 'Admin')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create the schedules table
+-- Create Schedules Table
 CREATE TABLE IF NOT EXISTS attendance_schedules (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  branch VARCHAR(100),
-  start_time TIME NOT NULL,
-  closing_time TIME NOT NULL,
-  assigned_users INTEGER,
-  locations VARCHAR(255),
-  duration VARCHAR(100)
+  schedule_name VARCHAR(255),
+  start_time TIME,
+  end_time TIME,
+  shift_type VARCHAR(50) CHECK (shift_type IN ('Morning', 'Afternoon', 'Night')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create the schedule_participants table
-CREATE TABLE IF NOT EXISTS attendance_schedule_participants (
-  id SERIAL PRIMARY KEY,
-  schedule_id INTEGER REFERENCES attendance_schedules(id) ON DELETE CASCADE,
-  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE
-);
-
--- Create the attendance table
+-- Create Attendance Table with Coordinates
 CREATE TABLE IF NOT EXISTS attendance_attendance (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,  -- Ensure attendance is deleted when user is deleted
+  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,
+  schedule_id INTEGER REFERENCES attendance_schedules(id) ON DELETE SET NULL,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
-  clock_in_time TIME,  -- Changed here to clock_in_time instead of clock_in
+  clock_in_time TIME,
   clock_out_time TIME,
   status VARCHAR(20) CHECK (status IN ('On Time', 'Late', 'Early Departure', 'Absent', 'Time Off')),
-  location VARCHAR(255) CHECK (location IN ('Known', 'Unknown', 'known', 'unknown')) NOT NULL,
-  coordinates VARCHAR(100),
+  location VARCHAR(255) CHECK (location IN ('Known', 'Unknown', 'known', 'unknown')) NOT NULL,  -- optional if you still need it
+  coordinates JSONB, -- New column for latitude and longitude (JSONB format)
   landmark VARCHAR(255),
   clocked_by VARCHAR(50),
-  device_info VARCHAR(255),  -- Adding device_info column
-  schedule_id INTEGER,  -- Adding schedule_id column
-  CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES attendance_schedules(id) ON DELETE SET NULL  -- Foreign key to schedules table with cascade option
+  device_info VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Add indices to improve performance
+CREATE INDEX IF NOT EXISTS idx_user_schedule_date ON attendance_attendance (user_id, schedule_id, date);
 
 -- Create the roster table
 CREATE TABLE IF NOT EXISTS attendance_roster (

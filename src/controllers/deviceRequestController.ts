@@ -7,26 +7,39 @@ interface CustomRequest extends Request {
 }
 import { pool } from '../db.js';
 
-const submitDeviceRequest = async (req: CustomRequest, res: Response): Promise<void> => {
+const submitDeviceRequest = async (req: CustomRequest, res: Response): Promise<Response> => {
   const { deviceInfo } = req.body;
   const userId = req.user.id;
+
   try {
+    // Check if the user exists
+    const { rows: userRows } = await pool.query(
+      'SELECT id FROM attendance_users WHERE id = $1',
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Proceed with inserting the device request
     const { rows } = await pool.query(
       'INSERT INTO attendance_device_requests (user_id, device_info, status) VALUES ($1, $2, $3) RETURNING *',
       [userId, JSON.stringify(deviceInfo), 'pending']
     );
-    res.status(201).json({
+
+    return res.status(201).json({
       message: 'Device approval request submitted successfully.',
       requestId: rows[0].id,
       status: rows[0].status,
       submittedAt: rows[0].created_at
     });
-  } catch (error:any) {
-    res.status(500).json({ error: error.message });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
   }
 };
 
-const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promise<void> => {
+const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promise<Response> => {
   const userId = req.user.id;
   const { requestId } = req.query;
   try {
@@ -38,8 +51,7 @@ const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promis
     }
     const { rows } = await pool.query(query, values);
     if (rows.length === 0) {
-      res.status(404).json({ message: 'Request not found' });
-      return;
+      return res.status(404).json({ message: 'Request not found' });
     }
     const requests = rows.map(row => {
       const deviceInfo = JSON.parse(row.device_info);
@@ -54,13 +66,13 @@ const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promis
         reviewedBy: row.reviewed_by
       };
     });
-    res.json(requests);
-  } catch (error:any) {
-    res.status(500).json({ error: error.message });
+    return res.json(requests);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
   }
 };
 
-const cancelDeviceRequest = async (req: CustomRequest, res: Response): Promise<void> => {
+const cancelDeviceRequest = async (req: CustomRequest, res: Response): Promise<Response> => {
   const { requestId } = req.params;
   const userId = req.user.id;
   try {
@@ -69,12 +81,11 @@ const cancelDeviceRequest = async (req: CustomRequest, res: Response): Promise<v
       [requestId, userId, 'pending']
     );
     if (rows.length === 0) {
-      res.status(404).json({ message: 'Request not found or cannot be canceled' });
-      return;
+      return res.status(404).json({ message: 'Request not found or cannot be canceled' });
     }
-    res.json({ message: 'Device approval request canceled successfully.', requestId: rows[0].id });
-  } catch (error:any) {
-    res.status(500).json({ error: error.message });
+    return res.json({ message: 'Device approval request canceled successfully.', requestId: rows[0].id });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
   }
 };
 

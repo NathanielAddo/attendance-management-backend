@@ -3,7 +3,6 @@ import {
   clockInIndividual,
   clockInBulk,
   clockOutIndividual,
-  clockOutBulk,
   getAttendees,
   getAbsentees,
   getClockedInUsers,
@@ -19,7 +18,6 @@ router.post('/schedules/:scheduleId/clock-out', authenticate, clockOutIndividual
 
 // Bulk attendance routes
 router.post('/schedules/:scheduleId/clock-in/bulk', authenticate, clockInBulk);
-router.post('/schedules/:scheduleId/clock-out/bulk', authenticate, clockOutBulk);
 
 // Attendance details routes
 router.get('/schedules/:scheduleId/attendees', authenticate, getAttendees);

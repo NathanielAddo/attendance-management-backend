@@ -87,7 +87,6 @@ const clockInBulk = async (req: Request, res: Response): Promise<Response> => {
 };
 
 // Clock out for an individual user
-// Clock out for an individual user
 const clockOutIndividual = async (req: Request, res: Response): Promise<Response> => {
   const { userId, scheduleId, location, deviceInfo } = req.body;
 
@@ -138,119 +137,8 @@ const clockOutIndividual = async (req: Request, res: Response): Promise<Response
   }
 };
 
-
-// Get attendees for a specific schedule
-const getAttendees = async (req: Request, res: Response): Promise<Response> => {
-  const { scheduleId } = req.params;
-
-  try {
-    const result = await pool.query(
-      `
-      SELECT user_id, clock_in_time, coordinates
-      FROM attendance_attendance
-      WHERE schedule_id = $1 AND clock_in_time IS NOT NULL;
-      `,
-      [scheduleId]
-    );
-
-    return res.json({
-      success: true,
-      data: result.rows,
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-// Get absentees for a specific schedule
-const getAbsentees = async (req: Request, res: Response): Promise<Response> => {
-  const { scheduleId } = req.params;
-
-  try {
-    const result = await pool.query(
-      `
-      SELECT user_id
-      FROM attendance_attendance
-      WHERE schedule_id = $1 AND clock_in_time IS NULL;
-      `,
-      [scheduleId]
-    );
-
-    return res.json({
-      success: true,
-      data: result.rows,
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-// Get clocked-in users for a schedule
-const getClockedInUsers = async (req: Request, res: Response): Promise<Response> => {
-  const { scheduleId } = req.params;
-
-  try {
-    const result = await pool.query(
-      `
-      SELECT user_id, clock_in_time, coordinates
-      FROM attendance_attendance
-      WHERE schedule_id = $1 AND clock_in_time IS NOT NULL AND clock_out_time IS NULL;
-      `,
-      [scheduleId]
-    );
-
-    return res.json({
-      success: true,
-      data: result.rows,
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-// Export clocking records (Optional, for CSV export)
-const exportClockingRecords = async (req: Request, res: Response): Promise<Response> => {
-  const { scheduleId } = req.params;
-
-  try {
-    const result = await pool.query(
-      `
-      SELECT user_id, clock_in_time, clock_out_time, coordinates
-      FROM attendance_attendance
-      WHERE schedule_id = $1;
-      `,
-      [scheduleId]
-    );
-
-    // Logic to convert `result.rows` to CSV (use libraries like 'json2csv' if needed)
-
-    return res.json({
-      success: true,
-      data: result.rows,
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
 export {
   clockInIndividual,
   clockInBulk,
   clockOutIndividual,
-  getAttendees,
-  getAbsentees,
-  getClockedInUsers,
-  exportClockingRecords,
 };

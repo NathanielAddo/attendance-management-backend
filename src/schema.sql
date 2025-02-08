@@ -10,14 +10,34 @@ CREATE TABLE IF NOT EXISTS attendance_users (
 );
 
 -- Create Schedules Table
+-- Create Attendance Schedules Table
 CREATE TABLE IF NOT EXISTS attendance_schedules (
-  id SERIAL PRIMARY KEY,
-  schedule_name VARCHAR(255),
-  start_time TIME,
-  end_time TIME,
-  shift_type VARCHAR(50) CHECK (shift_type IN ('Morning', 'Afternoon', 'Night')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id SERIAL PRIMARY KEY, -- Unique identifier for each attendance schedule
+  attendance_schedule_name VARCHAR(255) NOT NULL,  -- Name of the attendance schedule
+  schedule_category VARCHAR(50) CHECK (schedule_category IN ('Weekly/Monthly Roster')) NOT NULL,  -- Schedule category (fixed values)
+  schedule_span VARCHAR(50) NOT NULL,  -- Span of the schedule (e.g., "2 days")
+  clock_in_time TIME NOT NULL,  -- Time for clock-in (e.g., "08:00 AM")
+  clock_out_time TIME NOT NULL,  -- Time for clock-out (e.g., "05:00 PM")
+  late_time INTERVAL,  -- Late time allowance (e.g., "15 minutes")
+  set_break BOOLEAN,  -- Whether to set a break time
+  start_break_time TIME,  -- Start time for the break (e.g., "12:00 PM")
+  end_break_time TIME,  -- End time for the break (e.g., "01:00 PM")
+  location_type VARCHAR(50) CHECK (location_type IN ('Known', 'Unknown')) NOT NULL,  -- Type of location
+  known_locations VARCHAR(255)[],  -- Array of known locations (e.g., ["HQ", "West Branch"])
+  recurring BOOLEAN NOT NULL,  -- Whether the schedule is recurring
+  recurring_days VARCHAR(50)[],  -- Array of recurring days (e.g., ["Monday", "Wednesday"])
+  recurring_duration VARCHAR(50),  -- Duration of recurring schedule (e.g., "02-05-2025, 02-05-2045")
+  non_recurring_dates DATE[],  -- Array of non-recurring dates (e.g., ["2025-01-01", "2025-02-03"])
+  overtime_status BOOLEAN,  -- Whether overtime is allowed
+  virtual_meeting VARCHAR(50),  -- Virtual meeting platform (e.g., "Zoom")
+  monthly_clocking_occurrences INTEGER,  -- Maximum monthly clocking occurrences
+  monthly_min_clocking_occurrences INTEGER,  -- Minimum monthly clocking occurrences
+  countries VARCHAR(100)[],  -- Array of countries (e.g., ["US", "Canada"])
+  branches VARCHAR(100)[],  -- Array of branches (e.g., ["HQ", "West Branch"])
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp for creation
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Timestamp for last update
 );
+
 
 -- Create Attendance Table with Coordinates
 CREATE TABLE IF NOT EXISTS attendance_attendance (

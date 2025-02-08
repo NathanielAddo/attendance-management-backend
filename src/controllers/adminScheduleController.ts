@@ -4,74 +4,348 @@ import { pool } from "../db"; // Assuming you have a PostgreSQL connection pool 
 // Get all schedules
 export const getAllSchedules = async (req: Request, res: Response) => {
   try {
+    // Fetch schedules from the database
     const result = await pool.query("SELECT * FROM attendance_schedules");
-    res.json(result.rows);
-  } catch (error) {
+
+    // Check if there are no schedules
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No schedules found. Please add a schedule and try again.",
+        data: [],
+      });
+    }
+
+    // Return schedules
+    res.json({
+      success: true,
+      message: "Schedules retrieved successfully.",
+      data: result.rows,
+    });
+  } catch (error: unknown) {
     console.error("Error fetching schedules:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+
+    // Handle different error scenarios
+    if (error instanceof Error) {
+      if (error.message.includes("ECONNREFUSED")) {
+        return res.status(500).json({
+          success: false,
+          message: "Database connection error. Please try again later.",
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred while retrieving schedules. Please try again later.",
+        error: error.message,
+      });
+    }
+
+    // Generic error response
+    res.status(500).json({
+      success: false,
+      message: "An unknown error occurred.",
+    });
   }
 };
 
-// Get schedule by ID
+
 export const getScheduleById = async (req: Request, res: Response) => {
   try {
+    // Extract and validate ID
     const { id } = req.params;
-    const result = await pool.query("SELECT * FROM attendance_schedules WHERE id = $1", [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Schedule not found" });
+    const scheduleId = Number(id);
+
+    if (isNaN(scheduleId) || scheduleId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid schedule ID. Please provide a valid numeric ID.",
+      });
     }
-    res.json(result.rows[0]);
-  } catch (error) {
+
+    // Query the database for the schedule
+    const result = await pool.query("SELECT * FROM attendance_schedules WHERE id = $1", [scheduleId]);
+
+    // Handle schedule not found case
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No schedule found with ID ${scheduleId}. Please check the ID and try again.`,
+        data: null,
+      });
+    }
+
+    // Return success response
+    res.json({
+      success: true,
+      message: "Schedule retrieved successfully.",
+      data: result.rows[0],
+    });
+
+  } catch (error: unknown) {
     console.error("Error fetching schedule:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+
+    // Handle different error scenarios
+    if (error instanceof Error) {
+      if (error.message.includes("ECONNREFUSED")) {
+        return res.status(500).json({
+          success: false,
+          message: "Database connection error. Please try again later.",
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred while retrieving the schedule. Please try again later.",
+        error: error.message,
+      });
+    }
+
+    // Generic error response
+    res.status(500).json({
+      success: false,
+      message: "An unknown error occurred.",
+    });
   }
 };
 
-// Create a new schedule
+
 export const createSchedule = async (req: Request, res: Response) => {
   try {
+    // Extract fields from request body
     const { name, branch, start_time, closing_time, assigned_users, locations, duration } = req.body;
+
+    // Validate required fields
+    if (!name || !branch || !start_time || !closing_time || !duration) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields. Please provide name, branch, start_time, closing_time, and duration.",
+      });
+    }
+
+    // Ensure duration is a valid number
+    if (typeof duration !== "number" || duration <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid duration. Duration must be a positive number.",
+      });
+    }
+
+    // Ensure assigned_users and locations are arrays and convert them to JSON strings if needed
+    const assignedUsersString = Array.isArray(assigned_users) ? JSON.stringify(assigned_users) : "[]";
+    const locationsString = Array.isArray(locations) ? JSON.stringify(locations) : "[]";
+
+    // Insert the schedule into the database
     const result = await pool.query(
       "INSERT INTO attendance_schedules (name, branch, start_time, closing_time, assigned_users, locations, duration) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [name, branch, start_time, closing_time, assigned_users, locations, duration]
+      [name, branch, start_time, closing_time, assignedUsersString, locationsString, duration]
     );
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
+
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: "Schedule created successfully.",
+      data: result.rows[0],
+    });
+
+  } catch (error: unknown) {
     console.error("Error creating schedule:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+
+    // Handle database errors
+    if (error instanceof Error) {
+      if (error.message.includes("ECONNREFUSED")) {
+        return res.status(500).json({
+          success: false,
+          message: "Database connection error. Please try again later.",
+        });
+      }
+      if (error.message.includes("violates unique constraint")) {
+        return res.status(400).json({
+          success: false,
+          message: "A schedule with the same name already exists. Please choose a different name.",
+        });
+      }
+      if (error.message.includes("foreign key constraint")) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid branch or location ID. Please check your input and try again.",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred while creating the schedule. Please try again later.",
+        error: error.message,
+      });
+    }
+
+    // Generic error response
+    res.status(500).json({
+      success: false,
+      message: "An unknown error occurred.",
+    });
   }
 };
 
-// Update schedule
+
 export const updateSchedule = async (req: Request, res: Response) => {
   try {
+    // Extract and validate ID
     const { id } = req.params;
+    const scheduleId = Number(id);
+
+    if (isNaN(scheduleId) || scheduleId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid schedule ID. Please provide a valid numeric ID.",
+      });
+    }
+
+    // Extract fields from request body
     const { name, branch, start_time, closing_time, assigned_users, locations, duration } = req.body;
+
+    // Ensure at least one field is provided for update
+    if (!name && !branch && !start_time && !closing_time && !assigned_users && !locations && duration === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields provided for update. Please send at least one field to update.",
+      });
+    }
+
+    // Ensure duration is a valid number if provided
+    if (duration !== undefined && (typeof duration !== "number" || duration <= 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid duration. Duration must be a positive number.",
+      });
+    }
+
+    // Convert assigned_users and locations to JSON strings if they are arrays
+    const assignedUsersString = Array.isArray(assigned_users) ? JSON.stringify(assigned_users) : "[]";
+    const locationsString = Array.isArray(locations) ? JSON.stringify(locations) : "[]";
+
+    // Update the schedule in the database
     const result = await pool.query(
       "UPDATE attendance_schedules SET name = $1, branch = $2, start_time = $3, closing_time = $4, assigned_users = $5, locations = $6, duration = $7 WHERE id = $8 RETURNING *",
-      [name, branch, start_time, closing_time, assigned_users, locations, duration, id]
+      [name, branch, start_time, closing_time, assignedUsersString, locationsString, duration, scheduleId]
     );
+
+    // Handle schedule not found case
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Schedule not found" });
+      return res.status(404).json({
+        success: false,
+        message: `No schedule found with ID ${scheduleId}. Please check the ID and try again.`,
+        data: null,
+      });
     }
-    res.json(result.rows[0]);
-  } catch (error) {
+
+    // Return success response
+    res.json({
+      success: true,
+      message: "Schedule updated successfully.",
+      data: result.rows[0],
+    });
+
+  } catch (error: unknown) {
     console.error("Error updating schedule:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+
+    // Handle database errors
+    if (error instanceof Error) {
+      if (error.message.includes("ECONNREFUSED")) {
+        return res.status(500).json({
+          success: false,
+          message: "Database connection error. Please try again later.",
+        });
+      }
+      if (error.message.includes("violates unique constraint")) {
+        return res.status(400).json({
+          success: false,
+          message: "A schedule with the same name already exists. Please choose a different name.",
+        });
+      }
+      if (error.message.includes("foreign key constraint")) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid branch or location ID. Please check your input and try again.",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred while updating the schedule. Please try again later.",
+        error: error.message,
+      });
+    }
+
+    // Generic error response
+    res.status(500).json({
+      success: false,
+      message: "An unknown error occurred.",
+    });
   }
 };
 
 // Delete schedule
 export const deleteSchedule = async (req: Request, res: Response) => {
   try {
+    // Extract and validate ID
     const { id } = req.params;
-    const result = await pool.query("DELETE FROM attendance_schedules WHERE id = $1 RETURNING *", [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Schedule not found" });
+    const scheduleId = Number(id);
+
+    if (isNaN(scheduleId) || scheduleId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid schedule ID. Please provide a valid numeric ID.",
+      });
     }
-    res.json({ message: "Schedule deleted successfully" });
-  } catch (error) {
+
+    // Attempt to delete the schedule
+    const result = await pool.query("DELETE FROM attendance_schedules WHERE id = $1 RETURNING *", [scheduleId]);
+
+    // Handle case where schedule doesn't exist
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No schedule found with ID ${scheduleId}. Please check the ID and try again.`,
+        data: null,
+      });
+    }
+
+    // Return success response
+    res.json({
+      success: true,
+      message: "Schedule deleted successfully.",
+      deletedItem: result.rows[0],
+    });
+
+  } catch (error: unknown) {
     console.error("Error deleting schedule:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+
+    // Handle database errors
+    if (error instanceof Error) {
+      if (error.message.includes("ECONNREFUSED")) {
+        return res.status(500).json({
+          success: false,
+          message: "Database connection error. Please try again later.",
+        });
+      }
+      if (error.message.includes("foreign key constraint")) {
+        return res.status(400).json({
+          success: false,
+          message: "This schedule is referenced in another table and cannot be deleted. Please remove related records first.",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred while deleting the schedule. Please try again later.",
+        error: error.message,
+      });
+    }
+
+    // Generic error response
+    res.status(500).json({
+      success: false,
+      message: "An unknown error occurred.",
+    });
   }
 };
+

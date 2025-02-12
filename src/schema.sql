@@ -1,14 +1,3 @@
--- Create Users Table
-CREATE TABLE IF NOT EXISTS attendance_users (
-  id SERIAL PRIMARY KEY,
-  first_name VARCHAR(100),
-  last_name VARCHAR(100),
-  email VARCHAR(100) UNIQUE,
-  phone_number VARCHAR(20),
-  role VARCHAR(50) CHECK (role IN ('Employee', 'Manager', 'Admin')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Create Attendance Schedules Table
 CREATE TABLE IF NOT EXISTS attendance_schedules (
   id SERIAL PRIMARY KEY, 
@@ -40,7 +29,6 @@ CREATE TABLE IF NOT EXISTS attendance_schedules (
 -- Create Attendance Table with Coordinates
 CREATE TABLE IF NOT EXISTS attendance_attendance (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,
   schedule_id INTEGER REFERENCES attendance_schedules(id) ON DELETE SET NULL,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   clock_in_time TIME,
@@ -58,7 +46,6 @@ CREATE TABLE IF NOT EXISTS attendance_attendance (
 -- Create Roster Table
 CREATE TABLE IF NOT EXISTS attendance_roster (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   shift VARCHAR(50) NOT NULL
 );
@@ -96,18 +83,9 @@ CREATE TABLE IF NOT EXISTS attendance_notifications (
   user_type VARCHAR(50)
 );
 
--- Create Biometric Data Table
-CREATE TABLE IF NOT EXISTS attendance_biometric_data (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,
-  voice_data BYTEA,
-  image_data BYTEA
-);
-
 -- Create Device Requests Table
 CREATE TABLE IF NOT EXISTS attendance_device_requests (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,
   device_info VARCHAR(255) NOT NULL,
   status VARCHAR(20) CHECK (status IN ('pending', 'approved', 'denied')),
   request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -162,6 +140,5 @@ CREATE TABLE IF NOT EXISTS attendance_notification_logs (
   id SERIAL PRIMARY KEY,
   notification_id INTEGER REFERENCES attendance_notifications_v2(id) ON DELETE CASCADE,
   sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  sent_to INTEGER REFERENCES attendance_users(id) ON DELETE CASCADE,
   status VARCHAR(20)
 );

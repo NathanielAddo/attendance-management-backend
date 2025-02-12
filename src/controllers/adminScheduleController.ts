@@ -107,54 +107,16 @@ export const getScheduleById = async (req: Request, res: Response) => {
   }
 };
 
-<<<<<<< HEAD
 
-=======
+
 // Create a new schedule
 // Create a new schedule
 // Create a new schedule
->>>>>>> 991add4149b96cadb9cda21bec2d18b0dc5ab25f
 export const createSchedule = async (req: Request, res: Response) => {
   try {
     // Extract fields from request body
     const { name, branch, start_time, closing_time, assigned_users, locations, duration } = req.body;
 
-<<<<<<< HEAD
-    // Validate required fields
-    if (!name || !branch || !start_time || !closing_time || !duration) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields. Please provide name, branch, start_time, closing_time, and duration.",
-      });
-    }
-
-    // Ensure duration is a valid number
-    if (typeof duration !== "number" || duration <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid duration. Duration must be a positive number.",
-      });
-    }
-
-    // Ensure assigned_users and locations are arrays and convert them to JSON strings if needed
-    const assignedUsersString = Array.isArray(assigned_users) ? JSON.stringify(assigned_users) : "[]";
-    const locationsString = Array.isArray(locations) ? JSON.stringify(locations) : "[]";
-
-    // Insert the schedule into the database
-    const result = await pool.query(
-      "INSERT INTO attendance_schedules (name, branch, start_time, closing_time, assigned_users, locations, duration) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [name, branch, start_time, closing_time, assignedUsersString, locationsString, duration]
-    );
-
-    // Return success response
-    res.status(201).json({
-      success: true,
-      message: "Schedule created successfully.",
-      data: result.rows[0],
-    });
-
-  } catch (error: unknown) {
-=======
     // First, insert the schedule into attendance_schedules
     const result = await pool.query(
       "INSERT INTO attendance_schedules (name, branch, start_time, closing_time, locations, duration) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
@@ -181,51 +143,14 @@ export const createSchedule = async (req: Request, res: Response) => {
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
->>>>>>> 991add4149b96cadb9cda21bec2d18b0dc5ab25f
     console.error("Error creating schedule:", error);
-
-    // Handle database errors
-    if (error instanceof Error) {
-      if (error.message.includes("ECONNREFUSED")) {
-        return res.status(500).json({
-          success: false,
-          message: "Database connection error. Please try again later.",
-        });
-      }
-      if (error.message.includes("violates unique constraint")) {
-        return res.status(400).json({
-          success: false,
-          message: "A schedule with the same name already exists. Please choose a different name.",
-        });
-      }
-      if (error.message.includes("foreign key constraint")) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid branch or location ID. Please check your input and try again.",
-        });
-      }
-
-      return res.status(500).json({
-        success: false,
-        message: "An unexpected error occurred while creating the schedule. Please try again later.",
-        error: error.message,
-      });
-    }
-
-    // Generic error response
-    res.status(500).json({
-      success: false,
-      message: "An unknown error occurred.",
-    });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 
-<<<<<<< HEAD
-=======
 
 // Update schedule
->>>>>>> 991add4149b96cadb9cda21bec2d18b0dc5ab25f
 export const updateSchedule = async (req: Request, res: Response) => {
   try {
     // Extract and validate ID

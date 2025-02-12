@@ -1,12 +1,16 @@
 import express from 'express';
 import {
+  createSchedule,
   clockInIndividual,
   clockInBulk,
-  clockOutIndividual,
+  clockOutIndividual
 } from '../controllers/attendanceController';
 import { authenticate } from '../middlewares/auth.middleware';
 
 const router = express.Router();
+
+// Schedule routes
+router.post('/schedules', authenticate, createSchedule); // New route to create a schedule
 
 // Individual attendance routes
 router.post('/schedules/:scheduleId/clock-in', authenticate, clockInIndividual);

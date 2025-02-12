@@ -9,14 +9,32 @@ CREATE TABLE IF NOT EXISTS attendance_users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create Schedules Table
+-- Create Attendance Schedules Table
 CREATE TABLE IF NOT EXISTS attendance_schedules (
-  id SERIAL PRIMARY KEY,
-  schedule_name VARCHAR(255),
-  start_time TIME,
-  end_time TIME,
-  shift_type VARCHAR(50) CHECK (shift_type IN ('Morning', 'Afternoon', 'Night')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id SERIAL PRIMARY KEY, 
+  attendance_schedule_name VARCHAR(255) NOT NULL,  
+  schedule_category VARCHAR(50) CHECK (schedule_category IN ('Weekly/Monthly Roster')) NOT NULL,  
+  schedule_span VARCHAR(50) NOT NULL,  
+  clock_in_time TIME NOT NULL,  
+  clock_out_time TIME NOT NULL,  
+  late_time INTERVAL,  
+  set_break BOOLEAN,  
+  start_break_time TIME,  
+  end_break_time TIME,  
+  location_type VARCHAR(50) CHECK (location_type IN ('Known', 'Unknown')) NOT NULL,  
+  known_locations VARCHAR(255)[],  
+  recurring BOOLEAN NOT NULL,  
+  recurring_days VARCHAR(50)[],  
+  recurring_duration VARCHAR(50),  
+  non_recurring_dates DATE[],  
+  overtime_status BOOLEAN,  
+  virtual_meeting VARCHAR(50),  
+  monthly_clocking_occurrences INTEGER,  
+  monthly_min_clocking_occurrences INTEGER,  
+  countries VARCHAR(100)[],  
+  branches VARCHAR(100)[],  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  
 );
 
 -- Create Attendance Table with Coordinates
@@ -29,7 +47,7 @@ CREATE TABLE IF NOT EXISTS attendance_attendance (
   clock_out_time TIME,
   status VARCHAR(20) CHECK (status IN ('On Time', 'Late', 'Early Departure', 'Absent', 'Time Off')),
   location VARCHAR(255) CHECK (location IN ('Known', 'Unknown')) NOT NULL,
-  coordinates JSONB, -- New column for latitude and longitude (JSONB format)
+  coordinates JSONB, 
   landmark VARCHAR(255),
   clocked_by VARCHAR(50),
   device_info VARCHAR(255),

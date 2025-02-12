@@ -6,11 +6,140 @@ const isValidLocation = (location: { latitude: number; longitude: number }): boo
   return !isNaN(location.latitude) && !isNaN(location.longitude);
 };
 
-// Clock in for an individual user
+// Helper function to validate schedule details
+const validateScheduleDetails = (scheduleDetails: any) => {
+  const {
+    attendanceScheduleName,
+    country,
+    branch,
+    scheduleCategory,
+    scheduleSpan,
+    clockInTime,
+    clockOutTime,
+    lateTime,
+    setBreak,
+    startBreakTime,
+    endBreakTime,
+    locationType,
+    knownLocations,
+    recurring,
+    recurringDays,
+    recurringDuration,
+    nonRecurringDates,
+    overtimeStatus,
+    virtualMeeting,
+    monthlyClockingOccurrences,
+    monthlyMinClockingOccurrences
+  } = scheduleDetails;
+
+  // You can expand this function to add more specific validations as needed.
+  if (!attendanceScheduleName || !Array.isArray(country) || !Array.isArray(branch)) {
+    throw new Error('Invalid schedule details');
+  }
+
+  // Continue validating other fields similarly...
+};
+
+// Create a new schedule
+const createSchedule = async (req: Request, res: Response): Promise<Response> => {
+  const {
+    attendanceScheduleName, // JSON field
+    country,
+    branch,
+    scheduleCategory,
+    scheduleSpan,
+    clockInTime,
+    clockOutTime,
+    lateTime,
+    setBreak,
+    startBreakTime,
+    endBreakTime,
+    locationType,
+    knownLocations,
+    recurring,
+    recurringDays,
+    recurringDuration,
+    nonRecurringDates,
+    overtimeStatus,
+    virtualMeeting,
+    monthlyClockingOccurrences,
+    monthlyMinClockingOccurrences
+  } = req.body;
+
+  try {
+    // Validate the schedule details
+    validateScheduleDetails(req.body);
+
+    // Insert the schedule into the database
+    const result = await pool.query(
+      `
+      INSERT INTO attendance_schedules (
+        attendance_schedule_name,  -- Database column
+        country, 
+        branch, 
+        schedule_category,
+        schedule_span, 
+        clock_in_time, 
+        clock_out_time, 
+        late_time, 
+        set_break, 
+        start_break_time, 
+        end_break_time, 
+        location_type, 
+        known_locations, 
+        recurring, 
+        recurring_days, 
+        recurring_duration, 
+        non_recurring_dates, 
+        overtime_status, 
+        virtual_meeting, 
+        monthly_clocking_occurrences, 
+        monthly_min_clocking_occurrences
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      RETURNING *;
+      `,
+      [
+        attendanceScheduleName, // JSON field mapped to database column
+        JSON.stringify(country), 
+        JSON.stringify(branch), 
+        scheduleCategory,
+        scheduleSpan,
+        clockInTime,
+        clockOutTime,
+        lateTime,
+        setBreak,
+        startBreakTime,
+        endBreakTime,
+        locationType,
+        JSON.stringify(knownLocations),
+        recurring,
+        JSON.stringify(recurringDays),
+        recurringDuration,
+        JSON.stringify(nonRecurringDates),
+        overtimeStatus,
+        virtualMeeting,
+        monthlyClockingOccurrences,
+        monthlyMinClockingOccurrences
+      ]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Schedule created successfully.',
+      data: result.rows[0]
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// Clock in for an individual user (Updated with new schedule ID logic)
 const clockInIndividual = async (req: Request, res: Response): Promise<Response> => {
   const { scheduleId, userId, location, deviceInfo } = req.body;
 
-  // Validate the location (latitude and longitude)
   if (!isValidLocation(location)) {
     return res.status(400).json({
       success: false,
@@ -43,11 +172,10 @@ const clockInIndividual = async (req: Request, res: Response): Promise<Response>
   }
 };
 
-// Clock in for multiple users (Bulk)
+// Clock in for multiple users (Bulk) - Updated
 const clockInBulk = async (req: Request, res: Response): Promise<Response> => {
   const { scheduleId, users } = req.body;
 
-  // Validate locations for all users
   for (const user of users) {
     if (!isValidLocation(user.location)) {
       return res.status(400).json({
@@ -90,7 +218,6 @@ const clockInBulk = async (req: Request, res: Response): Promise<Response> => {
 const clockOutIndividual = async (req: Request, res: Response): Promise<Response> => {
   const { userId, scheduleId, location, deviceInfo } = req.body;
 
-  // Check if location is defined and has latitude and longitude properties
   if (!location || typeof location.latitude === 'undefined' || typeof location.longitude === 'undefined') {
     return res.status(400).json({
       success: false,
@@ -98,7 +225,6 @@ const clockOutIndividual = async (req: Request, res: Response): Promise<Response
     });
   }
 
-  // Validate location (latitude and longitude)
   if (!isValidLocation(location)) {
     return res.status(400).json({
       success: false,
@@ -138,6 +264,7 @@ const clockOutIndividual = async (req: Request, res: Response): Promise<Response
 };
 
 export {
+  createSchedule,
   clockInIndividual,
   clockInBulk,
   clockOutIndividual,

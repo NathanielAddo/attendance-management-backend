@@ -12,16 +12,6 @@ const submitDeviceRequest = async (req: CustomRequest, res: Response): Promise<R
   const userId = req.user.id;
 
   try {
-    // Check if the user exists
-    const { rows: userRows } = await pool.query(
-      'SELECT id FROM attendance_users WHERE id = $1',
-      [userId]
-    );
-
-    if (userRows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
     // Proceed with inserting the device request
     const { rows } = await pool.query(
       'INSERT INTO attendance_device_requests (user_id, device_info, status) VALUES ($1, $2, $3) RETURNING *',

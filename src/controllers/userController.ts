@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
+import { Request, Response } from 'express'; 
 import { pool } from '../db';
 
 const getUsers = async (req: Request, res: Response): Promise<void> => {
   const { country, branch, category, group, subgroup, search } = req.query;
   try {
-    let query = 'SELECT * FROM attendance_attendance_users WHERE 1=1';
+    let query = 'SELECT * FROM users WHERE 1=1';
     const values: (string | undefined)[] = [];
     let valueIndex = 1;
 
@@ -44,7 +44,7 @@ const createUser = async (req: Request, res: Response): Promise<void> => {
   const { name, email, role, country, branch, category, group_name, subgroup } = req.body;
   try {
     const { rows } = await pool.query(
-      'INSERT INTO attendance_users (name, email, role, country, branch, category, group_name, subgroup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      'INSERT INTO users (name, email, role, country, branch, category, group_name, subgroup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
       [name, email, role, country, branch, category, group_name, subgroup]
     );
     res.status(201).json(rows[0]);
@@ -58,7 +58,7 @@ const updateUser = async (req: Request, res: Response): Promise<void> => {
   const { name, email, role } = req.body;
   try {
     const { rows } = await pool.query(
-      'UPDATE attendance_users SET name = $1, email = $2, role = $3 WHERE id = $4 RETURNING *',
+      'UPDATE users SET name = $1, email = $2, role = $3 WHERE id = $4 RETURNING *',
       [name, email, role, id]
     );
     if (rows.length === 0) {
@@ -94,7 +94,7 @@ const bulkCreateUsers = async (req: Request, res: Response): Promise<void> => {
       const createdUsers: { name: string; email: string; role: string }[] = [];
       for (const user of users) {
         const { rows } = await client.query(
-          'INSERT INTO attendance_users (name, email, role) VALUES ($1, $2, $3) RETURNING *',
+          'INSERT INTO users (name, email, role) VALUES ($1, $2, $3) RETURNING *',
           [user.name, user.email, user.role]
         );
         createdUsers.push(rows[0]);

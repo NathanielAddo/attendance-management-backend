@@ -17,7 +17,7 @@ import deviceRequestRoutes from './routes/deviceRequestRoutes';
 import locationRoutes from './routes/locationRoutes';
 import reportRoutes from './routes/reportRoutes';
 import offlineRoutes from './routes/offlineRoutes';
-import adminScheduleRoutes from './routes/adminScheduleRoute'
+import adminScheduleRoutes from './routes/adminScheduleRoute';
 
 dotenv.config();
 
@@ -36,14 +36,14 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true); // Allow request
+        callback(null, true);
       } else {
         callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Custom-Header"],
-    credentials: true, // Allow credentials (cookies, authorization headers)
+    credentials: true,
   })
 );
 
@@ -54,8 +54,8 @@ app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 });
 app.use(limiter);
 
@@ -73,6 +73,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/offline', offlineRoutes);
 app.use('/api/admin-schedule', adminScheduleRoutes);
 
+// Query route with caching mechanism
 app.get('/api/query/:queryName', async (req: Request, res: Response) => {
   const { queryName } = req.params;
   const { query, params } = req.query;
@@ -97,6 +98,7 @@ app.get('/api/query/:queryName', async (req: Request, res: Response) => {
   }
 });
 
+// Invalidate bundle route
 app.post('/api/invalidate/:queryName', async (req: Request, res: Response) => {
   const { queryName } = req.params;
 
@@ -121,8 +123,18 @@ app.use((req: Request, res: Response) => {
   res.status(404).send('Sorry, that route does not exist.');
 });
 
-const server = app.listen(PORT, () => {
+// Start the server
+const server = app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+
+  try {
+    const client = await pool.connect();
+    console.log('Connected to the database successfully');
+    client.release();
+  } catch (error) {
+    console.error('Database connection error:', error);
+    process.exit(1);
+  }
 });
 
 // Graceful shutdown

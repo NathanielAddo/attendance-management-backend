@@ -1,3 +1,5 @@
+// attendanceRoutes.ts
+
 import express from 'express';
 import {
   createSchedule,
@@ -10,7 +12,7 @@ import { authenticate } from '../middlewares/auth.middleware';
 const router = express.Router();
 
 // Schedule routes
-router.post('/schedules', authenticate, createSchedule); // New route to create a schedule
+router.post('/schedules', authenticate, createSchedule);
 
 // Individual attendance routes
 router.post('/schedules/:scheduleId/clock-in', authenticate, clockInIndividual);

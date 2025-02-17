@@ -5,8 +5,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { createAndUploadBundle, getBundleUrl, deleteBundle } from './bundleManager';
-// import { pool } from './db';
-import userRoutes from './routes/userRoutes';
+import { pool } from './db';
 import attendanceRoutes from './routes/attendanceRoutes';
 import rosterRoutes from './routes/rosterRoutes';
 import eventRoutes from './routes/eventRoutes';
@@ -60,7 +59,6 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Routes
-app.use('/api/users', userRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/roster', rosterRoutes);
 app.use('/api/events', eventRoutes);

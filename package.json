@@ -5,8 +5,8 @@
   "scripts": {
     "copy-schema": "cp src/schema.sql dist/",
     "copy-package": "cp package.json dist/",
-    "copy-cert" : "cp ca-certificate.crt dist/",
-    "copy-env" : "cp .env dist/",
+    "copy-cert": "cp ca-certificate.crt dist/",
+    "copy-env": "cp .env dist/",
     "migrate": "ts-node migrate.ts",
     "build": "tsc && npm run copy-schema",
     "start": "node dist/server.js",

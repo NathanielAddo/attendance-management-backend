@@ -1,6 +1,6 @@
 // attendanceRoutes.ts
 
-import express from 'express';
+import uWS from 'uWebSockets.js';
 import {
   createSchedule,
   clockInIndividual,
@@ -9,16 +9,38 @@ import {
 } from '../controllers/attendanceController';
 import { authenticate } from '../middlewares/auth.middleware';
 
-const router = express.Router();
+const app = uWS.App();
+
+// Middleware to handle authentication
+const authMiddleware = (res, req, next) => {
+  authenticate(req, res, next);
+};
 
 // Schedule routes
-router.post('/schedules', authenticate, createSchedule);
+app.post('/schedules', (res, req) => {
+  authMiddleware(res, req, () => createSchedule(req, res));
+});
 
 // Individual attendance routes
-router.post('/schedules/:scheduleId/clock-in', authenticate, clockInIndividual);
-router.post('/schedules/:scheduleId/clock-out', authenticate, clockOutIndividual);
+app.post('/schedules/:scheduleId/clock-in', (res, req) => {
+  authMiddleware(res, req, () => clockInIndividual(req, res));
+});
+
+app.post('/schedules/:scheduleId/clock-out', (res, req) => {
+  authMiddleware(res, req, () => clockOutIndividual(req, res));
+});
 
 // Bulk attendance routes
-router.post('/schedules/:scheduleId/clock-in/bulk', authenticate, clockInBulk);
+app.post('/schedules/:scheduleId/clock-in/bulk', (res, req) => {
+  authMiddleware(res, req, () => clockInBulk(req, res));
+});
 
-export default router;
+app.listen(9001, (token) => {
+  if (token) {
+    console.log('Listening to port 9001');
+  } else {
+    console.log('Failed to listen to port 9001');
+  }
+});
+
+export default app;

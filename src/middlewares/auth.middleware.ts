@@ -1,21 +1,22 @@
-import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/tokenVerifier";
 import { handleError } from "./error.middleware";
+import { HttpRequest, HttpResponse } from "uWebSockets.js";
 
-export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticate = async (res: HttpResponse, req: HttpRequest): Promise<void> => {
   try {
     console.log("=== Authenticating Request ===");
 
     let token: string | undefined;
 
     // Step 1: Check for token in cookies
-    const cookies = req.cookies || {};
-    token = cookies.authToken;
+    const cookies = req.getHeader("cookie") || "";
+    const cookieMatch = cookies.match(/authToken=([^;]+)/);
+    token = cookieMatch ? cookieMatch[1] : undefined;
     console.log("Token from Cookie:", token || "No token found in cookies");
 
     // Step 2: Fallback to Authorization header if no token in cookies
     if (!token) {
-      const authHeader = req.headers.authorization;
+      const authHeader = req.getHeader("authorization");
       console.log("Authorization Header:", authHeader || "No authorization header found");
 
       if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -26,10 +27,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     // Step 3: Reject if no token is found
     if (!token) {
-      res.status(401).json({
+      res.writeStatus("401 Unauthorized").end(JSON.stringify({
         success: false,
         message: "Authentication token missing or invalid",
-      });
+      }));
       return; // Ensure the function exits
     }
 
@@ -41,7 +42,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     (req as any).user = decoded;
 
     // Step 6: Proceed to the next middleware or route handler
-    next();
+    res.writeStatus("200 OK").end();
   } catch (error) {
     console.error("Authentication error:", (error as Error).message);
 

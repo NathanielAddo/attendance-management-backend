@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {
-    "copy-schema": "cp src/schema.sql dist/",
-    "copy-package": "cp package.json dist/",
-    "copy-cert": "cp ca-certificate.crt dist/",
-    "copy-env": "cp .env dist/",
-    "migrate": "ts-node migrate.ts",
+    "copy-schema": "cpy src/schema.sql dist/",
+    "copy-package": "cpy package.json dist/",
+    "copy-cert": "cpy ca-certificate.crt dist/",
+    "copy-env": "cpy .env dist/",
     "build": "tsc && npm run copy-schema",
     "start": "node dist/server.js",
     "dev": "node --loader ts-node/esm src/server.ts"
@@ -46,6 +45,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.10",
     "@types/twilio": "^3.19.2",
+    "cpy-cli": "^5.0.0",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",

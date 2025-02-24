@@ -1,11 +1,9 @@
-import { readFile } from "fs/promises";
+import { DataSource } from "typeorm";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-
+import { Attendance_Attendance } from "./Entities/attendance"; 
 dotenv.config();
-
-const { Pool } = pkg;
 
 // Resolve the path to the CA certificate
 const caCertificatePath = path.resolve(__dirname, "../ca-certificate.crt");
@@ -13,48 +11,37 @@ const caCertificatePath = path.resolve(__dirname, "../ca-certificate.crt");
 let caCert;
 try {
   caCert = fs.readFileSync(caCertificatePath, "utf8");
-} catch (error:any) {
+} catch (error: any) {
   console.error("Error reading CA certificate:", error.message);
   process.exit(1);
 }
 
-// Database connection setup
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+// TypeORM DataSource setup
+export const dataSource = new DataSource({
+  type: "postgres", // Assuming you are using PostgreSQL
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
+  username: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   ssl: {
     rejectUnauthorized: true,
     ca: caCert,
   },
-  max: 10, // Limit the maximum number of connections
-  idleTimeoutMillis: 30000, // Time before idle connections are closed
-  // logging: process.env.DB_LOGGING === "true", // Conditional logging based on env
+  entities: [Attendance_Attendance], // Register your entity here
+  synchronize: true, // Automatically sync the schema to the database
+  logging: process.env.DB_LOGGING === "true", // Optional logging based on env
+  migrations: [], // You can set up migrations if needed in the future
+  subscribers: [],
 });
 
-// Test the database connection
+// Test the TypeORM connection
 (async () => {
   try {
-    const client = await pool.connect();
+    await dataSource.initialize();
     console.log("Database connection successful.");
-    client.release();
-  } catch (error:any) {
+  } catch (error: any) {
     console.error("Database connection failed:", error.message);
     process.exit(1);
-  }
-})();
-
-// Apply the schema from schema.sql
-(async () => {
-  const sqlPath = path.resolve(__dirname, "schema.sql");
-  try {
-    const schema = await readFile(sqlPath, "utf8");
-    await pool.query(schema);
-    console.log("Schema applied successfully.");
-  } catch (error:any) {
-    console.error("Error applying schema:", error.message);
   }
 })();

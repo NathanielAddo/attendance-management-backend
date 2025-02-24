@@ -1,37 +1,40 @@
-import { Request, Response } from 'express';
+import { App } from 'uWebSockets.js';
+import { pool } from '../db.js';
 
-interface CustomRequest extends Request {
+interface CustomRequest {
   user: {
     id: string;
   };
+  body: any;
+  query: any;
+  params: any;
 }
-import { pool } from '../db.js';
 
-const submitDeviceRequest = async (req: CustomRequest, res: Response): Promise<Response> => {
+const submitDeviceRequest = async (res: any, req: CustomRequest) => {
   const { deviceInfo } = req.body;
   const userId = req.user.id;
 
   try {
-    // Proceed with inserting the device request
     const { rows } = await pool.query(
       'INSERT INTO attendance_device_requests (user_id, device_info, status) VALUES ($1, $2, $3) RETURNING *',
       [userId, JSON.stringify(deviceInfo), 'pending']
     );
 
-    return res.status(201).json({
+    res.writeStatus('201 Created').end(JSON.stringify({
       message: 'Device approval request submitted successfully.',
       requestId: rows[0].id,
       status: rows[0].status,
       submittedAt: rows[0].created_at
-    });
+    }));
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({ error: error.message }));
   }
 };
 
-const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promise<Response> => {
+const getDeviceRequestStatus = async (res: any, req: CustomRequest) => {
   const userId = req.user.id;
   const { requestId } = req.query;
+
   try {
     let query = 'SELECT * FROM attendance_device_requests WHERE user_id = $1';
     const values: (string | number)[] = [userId];
@@ -41,7 +44,8 @@ const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promis
     }
     const { rows } = await pool.query(query, values);
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Request not found' });
+      res.writeStatus('404 Not Found').end(JSON.stringify({ message: 'Request not found' }));
+      return;
     }
     const requests = rows.map(row => {
       const deviceInfo = JSON.parse(row.device_info);
@@ -56,31 +60,58 @@ const getDeviceRequestStatus = async (req: CustomRequest, res: Response): Promis
         reviewedBy: row.reviewed_by
       };
     });
-    return res.json(requests);
+    res.end(JSON.stringify(requests));
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({ error: error.message }));
   }
 };
 
-const cancelDeviceRequest = async (req: CustomRequest, res: Response): Promise<Response> => {
+const cancelDeviceRequest = async (res: any, req: CustomRequest) => {
   const { requestId } = req.params;
   const userId = req.user.id;
+
   try {
     const { rows } = await pool.query(
       'DELETE FROM attendance_device_requests WHERE id = $1 AND user_id = $2 AND status = $3 RETURNING *',
       [requestId, userId, 'pending']
     );
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Request not found or cannot be canceled' });
+      res.writeStatus('404 Not Found').end(JSON.stringify({ message: 'Request not found or cannot be canceled' }));
+      return;
     }
-    return res.json({ message: 'Device approval request canceled successfully.', requestId: rows[0].id });
+    res.end(JSON.stringify({ message: 'Device approval request canceled successfully.', requestId: rows[0].id }));
   } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({ error: error.message }));
   }
 };
 
-export {
-  submitDeviceRequest,
-  getDeviceRequestStatus,
-  cancelDeviceRequest
-};
+const app = App();
+
+app.post('/submitDeviceRequest', (res, req) => {
+  let body = '';
+  req.onData((chunk, isLast) => {
+    body += Buffer.from(chunk).toString();
+    if (isLast) {
+      req.body = JSON.parse(body);
+      submitDeviceRequest(res, req);
+    }
+  });
+});
+
+app.get('/getDeviceRequestStatus', (res, req) => {
+  req.query = {}; // Parse query parameters from URL
+  getDeviceRequestStatus(res, req);
+});
+
+app.del('/cancelDeviceRequest/:requestId', (res, req) => {
+  req.params = { requestId: req.getParameter(0) };
+  cancelDeviceRequest(res, req);
+});
+
+app.listen(3000, (token) => {
+  if (token) {
+    console.log('Listening to port 3000');
+  } else {
+    console.log('Failed to listen to port 3000');
+  }
+});

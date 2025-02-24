@@ -1,10 +1,18 @@
-import express from 'express';
+import uWS from 'uWebSockets.js';
 import { authenticate } from '../middlewares/auth.middleware';
 import { syncOfflineData, getSyncStatus } from '../controllers/offlineController.js';
 
-const router = express.Router();
+const app = uWS.App();
 
-router.post('/sync', authenticate, (req, res) => syncOfflineData(req, res));
-router.get('/sync/status', authenticate, (req, res) => getSyncStatus(req, res));
+app.post('/sync', (res, req) => {
+    authenticate(req, res, () => {
+        syncOfflineData(req, res);
+    });
+});
 
-export default router;
+app.get('/sync/status', (res, req) => {
+    authenticate(req, res, () => {
+        getSyncStatus(req, res);
+    });
+});
+

@@ -1,6 +1,6 @@
 // attendanceRoutes.ts
 
-import uWS from 'uWebSockets.js';
+import uWS from 'uwebsockets.js';
 import {
   createSchedule,
   clockInIndividual,
@@ -34,13 +34,3 @@ app.post('/schedules/:scheduleId/clock-out', (res, req) => {
 app.post('/schedules/:scheduleId/clock-in/bulk', (res, req) => {
   authMiddleware(res, req, () => clockInBulk(req, res));
 });
-
-app.listen(9001, (token) => {
-  if (token) {
-    console.log('Listening to port 9001');
-  } else {
-    console.log('Failed to listen to port 9001');
-  }
-});
-
-export default app;

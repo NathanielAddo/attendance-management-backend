@@ -1,11 +1,29 @@
-import express from 'express';
+import uWS from 'uWebSockets.js';
 import { registerVoice, registerImage, updateVoice, updateImage } from '../controllers/biometricController.js';
 import { authenticate } from '../middlewares/auth.middleware';
-const router = express.Router();
 
-router.post('/voice-register', authenticate, (req, res) => registerVoice(req, res));
-router.post('/image-register', authenticate, (req, res) => registerImage(req, res));
-router.put('/voice-register', authenticate, (req, res) => updateVoice(req, res));
-router.put('/image-register', authenticate, (req, res) => updateImage(req, res));
+const app = uWS.App();
 
-export default router;
+app.post('/voice-register', (res, req) => {
+    authenticate(req, res, () => {
+        registerVoice(req, res);
+    });
+});
+
+app.post('/image-register', (res, req) => {
+    authenticate(req, res, () => {
+        registerImage(req, res);
+    });
+});
+
+app.put('/voice-register', (res, req) => {
+    authenticate(req, res, () => {
+        updateVoice(req, res);
+    });
+});
+
+app.put('/image-register', (res, req) => {
+    authenticate(req, res, () => {
+        updateImage(req, res);
+    });
+});

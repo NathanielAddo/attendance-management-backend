@@ -1,13 +1,25 @@
-import express from 'express';
+import { App } from 'uWebSockets.js';
 import { authenticate } from '../middlewares/auth.middleware';
 import { getEvents, createEvent, updateEvent, deleteEvent, bulkCreateEvents } from '../controllers/eventController.js';
 
-const router = express.Router();
+const app = App();
 
-router.get('/', authenticate, (req, res) => getEvents(req, res));
-router.post('/:userId', authenticate, (req, res) => createEvent(req, res));
-router.post('/bulk', authenticate, (req, res) => bulkCreateEvents(req, res));
-router.put('/:id', authenticate, (req, res) => updateEvent(req, res));
-router.delete('/:id', authenticate, (req, res) => deleteEvent(req, res));
+app.get('/*', (res, req) => {
+    authenticate(req, res, () => getEvents(req, res));
+});
 
-export default router;
+app.post('/:userId', (res, req) => {
+    authenticate(req, res, () => createEvent(req, res));
+});
+
+app.post('/bulk', (res, req) => {
+    authenticate(req, res, () => bulkCreateEvents(req, res));
+});
+
+app.put('/:id', (res, req) => {
+    authenticate(req, res, () => updateEvent(req, res));
+});
+
+app.del('/:id', (res, req) => {
+    authenticate(req, res, () => deleteEvent(req, res));
+});

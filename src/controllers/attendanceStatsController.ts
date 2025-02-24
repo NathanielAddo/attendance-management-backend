@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { App } from 'uws';
 import { pool } from '../db';
 import { createObjectCsvWriter } from 'csv-writer';
 import path from 'path';
@@ -15,9 +15,9 @@ interface QueryParams {
   subgroup?: string;
 }
 
-const getAttendanceSummary = async (req: Request, res: Response): Promise<void> => {
+const getAttendanceSummary = async (res, query: QueryParams): Promise<void> => {
   try {
-    const { dateInterval, schedule, country, region, branch, category, group, subgroup } = req.query as QueryParams;
+    const { dateInterval, schedule, country, region, branch, category, group, subgroup } = query;
     const date = new Date(dateInterval || Date.now());
 
     const { rows } = await pool.query(getAttendanceSummaryQuery, [
@@ -30,37 +30,40 @@ const getAttendanceSummary = async (req: Request, res: Response): Promise<void> 
       subgroup || null
     ]);
 
-    res.json(rows[0]);
+    res.writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(rows[0]));
   } catch (error) {
     console.error('Error fetching attendance summary:', error);
-    res.status(500).json({ message: 'Error fetching attendance summary' });
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({ message: 'Error fetching attendance summary' }));
   }
 };
 
-const getChartData = async (req: Request, res: Response): Promise<void> => {
+const getChartData = async (res, query: { startDate: string; endDate: string }): Promise<void> => {
   try {
-    const { startDate, endDate } = req.query as { startDate: string; endDate: string };
+    const { startDate, endDate } = query;
     const { rows } = await pool.query(getChartDataQuery, [startDate, endDate]);
-    res.json(rows);
+    res.writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(rows));
   } catch (error) {
     console.error('Error fetching chart data:', error);
-    res.status(500).json({ message: 'Error fetching chart data' });
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({ message: 'Error fetching chart data' }));
   }
 };
 
-const getTableData = async (req: Request, res: Response): Promise<void> => {
+const getTableData = async (res): Promise<void> => {
   try {
     const { rows } = await pool.query(getTableDataQuery);
-    res.json(rows);
+    res.writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(rows));
   } catch (error) {
     console.error('Error fetching table data:', error);
-    res.status(500).json({ message: 'Error fetching table data' });
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({ message: 'Error fetching table data' }));
   }
 };
 
-const exportAttendanceData = async (req: Request, res: Response): Promise<void> => {
+const exportAttendanceData = async (res, query: { startDate: string; endDate: string }): Promise<void> => {
   try {
-    const { startDate, endDate } = req.query as { startDate: string; endDate: string };
+    const { startDate, endDate } = query;
     const { rows } = await pool.query(getChartDataQuery, [startDate, endDate]);
 
     const csvWriter = createObjectCsvWriter({
@@ -90,22 +93,39 @@ const exportAttendanceData = async (req: Request, res: Response): Promise<void> 
       overtime_hours: parseFloat(stat.overtime_hours).toFixed(2),
     })));
 
-    res.download(path.resolve(__dirname, '../exports/attendance_stats.csv'), 'attendance_stats.csv', (err) => {
-      if (err) {
-        console.error('Error downloading the file:', err);
-        res.status(500).json({ message: 'Error downloading the file' });
-      }
-    });
+    res.writeHeader('Content-Type', 'application/octet-stream');
+    res.end(path.resolve(__dirname, '../exports/attendance_stats.csv'));
   } catch (error) {
     console.error('Error exporting attendance data:', error);
-    res.status(500).json({ message: 'Error exporting attendance data' });
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({ message: 'Error exporting attendance data' }));
   }
 };
 
-export {
-  getAttendanceSummary,
-  getChartData,
-  getTableData,
-  exportAttendanceData
-};
+const app = App();
 
+app.get('/attendance-summary', (res, req) => {
+  const query = req.getQuery();
+  getAttendanceSummary(res, query);
+});
+
+app.get('/chart-data', (res, req) => {
+  const query = req.getQuery();
+  getChartData(res, query);
+});
+
+app.get('/table-data', (res, req) => {
+  getTableData(res);
+});
+
+app.get('/export-attendance-data', (res, req) => {
+  const query = req.getQuery();
+  exportAttendanceData(res, query);
+});
+
+app.listen(3000, (token) => {
+  if (token) {
+    console.log('Listening to port 3000');
+  } else {
+    console.log('Failed to listen to port 3000');
+  }
+});

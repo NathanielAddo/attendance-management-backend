@@ -1,4 +1,4 @@
-import express, { Response, Request } from "express";
+import uWS from 'uWebSockets.js';
 import { 
   submitDeviceRequest, 
   getDeviceRequestStatus, 
@@ -7,36 +7,33 @@ import {
 import { authenticate } from '../middlewares/auth.middleware';
 import { AuthenticatedRequest } from "../types/express";
 
-const router = express.Router();
+const app = uWS.App();
 
-router.post(
-  "/request-approval",
-  authenticate,
-  (req, res) => {
-    // Assert that `req` is an AuthenticatedRequest
+app.post('/request-approval', (res, req) => {
+  authenticate(req, res, () => {
     const authenticatedReq = req as AuthenticatedRequest;
     submitDeviceRequest(authenticatedReq, res);
-  }
-);
+  });
+});
 
-router.get(
-  "/request-status",
-  authenticate,
-  (req, res) => {
-    // Assert that `req` is an AuthenticatedRequest
+app.get('/request-status', (res, req) => {
+  authenticate(req, res, () => {
     const authenticatedReq = req as AuthenticatedRequest;
     getDeviceRequestStatus(authenticatedReq, res);
-  }
-);
+  });
+});
 
-router.delete(
-  "/request-approval/:requestId",
-  authenticate,
-  (req, res) => {
-    // Assert that `req` is an AuthenticatedRequest
+app.del('/request-approval/:requestId', (res, req) => {
+  authenticate(req, res, () => {
     const authenticatedReq = req as AuthenticatedRequest;
     cancelDeviceRequest(authenticatedReq, res);
-  }
-);
+  });
+});
 
-export default router;
+app.listen(9001, (token) => {
+  if (token) {
+    console.log('Listening to port 9001');
+  } else {
+    console.log('Failed to listen to port 9001');
+  }
+});

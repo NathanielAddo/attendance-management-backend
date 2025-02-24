@@ -1,10 +1,14 @@
-import express from 'express';
+import uWS from 'uWebSockets.js';
 import { authenticate } from '../middlewares/auth.middleware';
 import { getSchedules, getClockInLimit } from '../controllers/scheduleController.js';
 
-const router = express.Router();
+const app = uWS.App();
 
-router.get('/', authenticate, (req, res) => getSchedules(req, res));
-router.get('/:scheduleId/clock-in-limit', authenticate, (req, res) => getClockInLimit(req, res));
+app.get('/', (res, req) => {
+    authenticate(req, res, () => getSchedules(req, res));
+});
 
-export default router;
+app.get('/:scheduleId/clock-in-limit', (res, req) => {
+    authenticate(req, res, () => getClockInLimit(req, res));
+});
+

@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { App } from 'uWebSockets.js';
 import { pool } from '../db';
 
 interface AttendanceReport {
@@ -40,17 +40,8 @@ interface AttendanceBreakdown {
 }
 
 // Function to generate attendance reports
-const getAttendanceReport = async (req: Request, res: Response): Promise<void> => {
-  const { startDate, endDate, userType, country, branch, category, group, subgroup } = req.query as {
-    startDate: string;
-    endDate: string;
-    userType?: string;
-    country?: string;
-    branch?: string;
-    category?: string;
-    group?: string;
-    subgroup?: string;
-  };
+const getAttendanceReport = async (res: any, req: any): Promise<void> => {
+  const { startDate, endDate, userType, country, branch, category, group, subgroup } = req.query;
 
   try {
     let query = `
@@ -106,25 +97,22 @@ const getAttendanceReport = async (req: Request, res: Response): Promise<void> =
 
     const { rows }: { rows: AttendanceReport[] } = await pool.query(query, values);
 
-    res.json({
+    res.writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
       success: true,
       data: rows,
-    });
+    }));
   } catch (error: any) {
-    res.status(500).json({
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({
       success: false,
       error: error.message,
-    });
+    }));
   }
 };
 
 // Function to generate attendance breakdown for a specific user
-const getAttendanceBreakdown = async (req: Request, res: Response): Promise<void> => {
-  const { startDate, endDate, userId } = req.query as {
-    startDate: string;
-    endDate: string;
-    userId: string;
-  };
+const getAttendanceBreakdown = async (res: any, req: any): Promise<void> => {
+  const { startDate, endDate, userId } = req.query;
 
   try {
     const query = `
@@ -145,16 +133,33 @@ const getAttendanceBreakdown = async (req: Request, res: Response): Promise<void
     `;
     const { rows }: { rows: AttendanceBreakdown[] } = await pool.query(query, [userId, startDate, endDate]);
 
-    res.json({
+    res.writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
       success: true,
       data: rows,
-    });
+    }));
   } catch (error: any) {
-    res.status(500).json({
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({
       success: false,
       error: error.message,
-    });
+    }));
   }
 };
 
-export { getAttendanceReport, getAttendanceBreakdown };
+const app = App();
+
+app.get('/attendance-report', (res, req) => {
+  getAttendanceReport(res, req);
+});
+
+app.get('/attendance-breakdown', (res, req) => {
+  getAttendanceBreakdown(res, req);
+});
+
+app.listen(3000, (token) => {
+  if (token) {
+    console.log('Listening to port 3000');
+  } else {
+    console.log('Failed to listen to port 3000');
+  }
+});

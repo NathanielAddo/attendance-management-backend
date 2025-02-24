@@ -1,6 +1,6 @@
 // attendanceController.ts
 
-import { Request, Response } from 'express';
+import { App } from 'uWebSockets.js';
 import { pool } from '../db';
 
 // Helper to get a schedule by ID
@@ -43,7 +43,7 @@ const validateScheduleDetails = (scheduleDetails: any) => {
 };
 
 // Create a new schedule – note the addition of unlimitedShadow
-const createSchedule = async (req: Request, res: Response): Promise<Response> => {
+const createSchedule = async (res: any, req: any) => {
   const {
     attendanceScheduleName,
     country,
@@ -67,10 +67,10 @@ const createSchedule = async (req: Request, res: Response): Promise<Response> =>
     monthlyClockingOccurrences,
     monthlyMinClockingOccurrences,
     unlimitedShadow // NEW FIELD: when true the schedule never “expires”
-  } = req.body;
+  } = JSON.parse(req.body);
 
   try {
-    validateScheduleDetails(req.body);
+    validateScheduleDetails(JSON.parse(req.body));
 
     const result = await pool.query(
       `
@@ -126,16 +126,16 @@ const createSchedule = async (req: Request, res: Response): Promise<Response> =>
       ]
     );
 
-    return res.json({
+    res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
       message: 'Schedule created successfully.',
       data: result.rows[0]
-    });
+    }));
   } catch (error: any) {
-    return res.status(500).json({
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({
       success: false,
       error: error.message,
-    });
+    }));
   }
 };
 
@@ -186,14 +186,15 @@ const validateClockInTime = (schedule: any): void => {
 };
 
 // Clock in for an individual user (with new schedule validation logic)
-const clockInIndividual = async (req: Request, res: Response): Promise<Response> => {
-  const { scheduleId, userId, location, deviceInfo } = req.body;
+const clockInIndividual = async (res: any, req: any) => {
+  const { scheduleId, userId, location, deviceInfo } = JSON.parse(req.body);
 
   if (!isValidLocation(location)) {
-    return res.status(400).json({
+    res.writeStatus('400 Bad Request').end(JSON.stringify({
       success: false,
       error: 'Invalid location: Latitude or longitude is not a valid number.',
-    });
+    }));
+    return;
   }
 
   try {
@@ -213,30 +214,31 @@ const clockInIndividual = async (req: Request, res: Response): Promise<Response>
       [scheduleId, userId, JSON.stringify(location), JSON.stringify(deviceInfo)]
     );
 
-    return res.json({
+    res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
       message: 'User clocked in successfully.',
       data: result.rows[0],
-    });
+    }));
   } catch (error: any) {
-    return res.status(400).json({
+    res.writeStatus('400 Bad Request').end(JSON.stringify({
       success: false,
       error: error.message,
-    });
+    }));
   }
 };
 
 // Clock in for multiple users (Bulk) – includes schedule validation
-const clockInBulk = async (req: Request, res: Response): Promise<Response> => {
-  const { scheduleId, users } = req.body;
+const clockInBulk = async (res: any, req: any) => {
+  const { scheduleId, users } = JSON.parse(req.body);
 
   // Validate each user’s location
   for (const user of users) {
     if (!isValidLocation(user.location)) {
-      return res.status(400).json({
+      res.writeStatus('400 Bad Request').end(JSON.stringify({
         success: false,
         error: `Invalid location value for user ${user.userId}.`,
-      });
+      }));
+      return;
     }
   }
 
@@ -261,15 +263,15 @@ const clockInBulk = async (req: Request, res: Response): Promise<Response> => {
 
     await pool.query(query);
 
-    return res.json({
+    res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
       message: 'Users clocked in successfully.',
-    });
+    }));
   } catch (error: any) {
-    return res.status(400).json({
+    res.writeStatus('400 Bad Request').end(JSON.stringify({
       success: false,
       error: error.message,
-    });
+    }));
   }
 };
 
@@ -279,21 +281,23 @@ const clockInBulk = async (req: Request, res: Response): Promise<Response> => {
  * represents the number of spans (each span equals 24 hours) after clock in within which
  * clock out must occur.
  */
-const clockOutIndividual = async (req: Request, res: Response): Promise<Response> => {
-  const { userId, scheduleId, location, deviceInfo } = req.body;
+const clockOutIndividual = async (res: any, req: any) => {
+  const { userId, scheduleId, location, deviceInfo } = JSON.parse(req.body);
 
   if (!location || typeof location.latitude === 'undefined' || typeof location.longitude === 'undefined') {
-    return res.status(400).json({
+    res.writeStatus('400 Bad Request').end(JSON.stringify({
       success: false,
       error: 'Invalid location: Latitude or longitude is missing.',
-    });
+    }));
+    return;
   }
 
   if (!isValidLocation(location)) {
-    return res.status(400).json({
+    res.writeStatus('400 Bad Request').end(JSON.stringify({
       success: false,
       error: 'Invalid location: Latitude or longitude is not a valid number.',
-    });
+    }));
+    return;
   }
 
   try {
@@ -307,10 +311,11 @@ const clockOutIndividual = async (req: Request, res: Response): Promise<Response
     );
 
     if (attendanceResult.rowCount === 0) {
-      return res.status(404).json({
+      res.writeStatus('404 Not Found').end(JSON.stringify({
         success: false,
         message: 'Active clock in record not found for clocking out.',
-      });
+      }));
+      return;
     }
 
     const attendanceRecord = attendanceResult.rows[0];
@@ -326,10 +331,11 @@ const clockOutIndividual = async (req: Request, res: Response): Promise<Response
       const now = new Date();
 
       if (now > allowedDeadline) {
-        return res.status(400).json({
+        res.writeStatus('400 Bad Request').end(JSON.stringify({
           success: false,
           error: 'Clock out period has expired.',
-        });
+        }));
+        return;
       }
     }
 
@@ -344,22 +350,70 @@ const clockOutIndividual = async (req: Request, res: Response): Promise<Response
       [userId, scheduleId, JSON.stringify(location), JSON.stringify(deviceInfo)]
     );
 
-    return res.json({
+    res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
       message: 'User clocked out successfully.',
       data: result.rows[0],
-    });
+    }));
   } catch (error: any) {
-    return res.status(500).json({
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({
       success: false,
       error: error.message,
-    });
+    }));
   }
 };
 
-export {
-  createSchedule,
-  clockInIndividual,
-  clockInBulk,
-  clockOutIndividual,
-};
+// Create uWebSocket.js app and define routes
+const app = App();
+
+app.post('/create-schedule', (res, req) => {
+  let buffer = '';
+  req.onData((chunk, isLast) => {
+    buffer += Buffer.from(chunk).toString();
+    if (isLast) {
+      req.body = buffer;
+      createSchedule(res, req);
+    }
+  });
+});
+
+app.post('/clock-in-individual', (res, req) => {
+  let buffer = '';
+  req.onData((chunk, isLast) => {
+    buffer += Buffer.from(chunk).toString();
+    if (isLast) {
+      req.body = buffer;
+      clockInIndividual(res, req);
+    }
+  });
+});
+
+app.post('/clock-in-bulk', (res, req) => {
+  let buffer = '';
+  req.onData((chunk, isLast) => {
+    buffer += Buffer.from(chunk).toString();
+    if (isLast) {
+      req.body = buffer;
+      clockInBulk(res, req);
+    }
+  });
+});
+
+app.post('/clock-out-individual', (res, req) => {
+  let buffer = '';
+  req.onData((chunk, isLast) => {
+    buffer += Buffer.from(chunk).toString();
+    if (isLast) {
+      req.body = buffer;
+      clockOutIndividual(res, req);
+    }
+  });
+});
+
+app.listen(9001, (token) => {
+  if (token) {
+    console.log('Listening to port 9001');
+  } else {
+    console.log('Failed to listen to port 9001');
+  }
+});

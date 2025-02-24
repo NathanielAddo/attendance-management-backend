@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { App } from 'uWebSockets.js';
 import { pool } from '../db';
 
 // Define interfaces for the returned data
@@ -19,12 +19,12 @@ interface ScheduleClockInLimit {
 }
 
 // Function to get schedules with optional filters
-const getSchedules = async (req: Request, res: Response): Promise<void> => {
-  const { date, branchId, scheduleType } = req.query as {
-    date: string;
-    branchId?: string;
-    scheduleType?: string;
-  };
+const getSchedules = async (res: any, req: any): Promise<void> => {
+  const queryParams = req.getQuery();
+  const urlParams = new URLSearchParams(queryParams);
+  const date = urlParams.get('date') as string;
+  const branchId = urlParams.get('branchId');
+  const scheduleType = urlParams.get('scheduleType');
 
   try {
     let query = 'SELECT * FROM attendance_schedules WHERE date = $1';
@@ -42,23 +42,23 @@ const getSchedules = async (req: Request, res: Response): Promise<void> => {
 
     const { rows }: { rows: Schedule[] } = await pool.query(query, values);
 
-    res.json({
+    res.writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
       success: true,
       data: rows,
-    });
-    return;
+    }));
   } catch (error: any) {
-    res.status(500).json({
+    res.writeStatus('500 Internal Server Error').writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
       success: false,
       error: error.message,
-    });
-    return;
+    }));
   }
 };
 
 // Function to get clock-in limit for a specific schedule
-const getClockInLimit = async (req: Request, res: Response): Promise<void> => {
-  const { scheduleId } = req.params as { scheduleId: string };
+const getClockInLimit = async (res: any, req: any): Promise<void> => {
+  const scheduleId = req.getParameter(0);
 
   try {
     const { rows }: { rows: ScheduleClockInLimit[] } = await pool.query(
@@ -67,25 +67,42 @@ const getClockInLimit = async (req: Request, res: Response): Promise<void> => {
     );
 
     if (rows.length === 0) {
-      res.status(404).json({
+      res.writeStatus('404 Not Found').writeHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
         success: false,
         message: 'Schedule not found',
-      });
+      }));
       return;
     }
 
-    res.json({
+    res.writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
       success: true,
       data: rows[0],
-    });
-    return;
+    }));
   } catch (error: any) {
-    res.status(500).json({
+    res.writeStatus('500 Internal Server Error').writeHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
       success: false,
       error: error.message,
-    });
-    return;
+    }));
   }
 };
 
-export { getSchedules, getClockInLimit };
+const app = App();
+
+app.get('/schedules', (res, req) => {
+  getSchedules(res, req);
+});
+
+app.get('/schedules/:scheduleId/clock-in-limit', (res, req) => {
+  getClockInLimit(res, req);
+});
+
+app.listen(3000, (token) => {
+  if (token) {
+    console.log('Listening to port 3000');
+  } else {
+    console.log('Failed to listen to port 3000');
+  }
+});

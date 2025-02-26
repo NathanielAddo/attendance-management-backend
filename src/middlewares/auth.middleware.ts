@@ -2,7 +2,10 @@ import { verifyToken } from "../utils/tokenVerifier";
 import { handleError } from "./error.middleware";
 import { HttpRequest, HttpResponse } from "uWebSockets.js";
 
-export const authenticate = async (res: HttpResponse, req: HttpRequest): Promise<void> => {
+type UWSHttpResponse = any; // Replace 'any' with a proper type if available
+type UWSHttpRequest = any;
+
+export const authenticate = async (res: UWSHttpResponse, req: UWSHttpRequest): Promise<void> => {
   try {
     console.log("=== Authenticating Request ===");
 

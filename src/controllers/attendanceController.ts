@@ -1,11 +1,11 @@
 // attendanceController.ts
 
 import { App } from 'uWebSockets.js';
-import { pool } from '../db';
+import { dataSource } from "../db";
 
 // Helper to get a schedule by ID
 const getScheduleById = async (scheduleId: number) => {
-  const scheduleResult = await pool.query(
+  const scheduleResult = await dataSource.query(
     `SELECT * FROM attendance_schedules WHERE id = $1`,
     [scheduleId]
   );
@@ -72,7 +72,7 @@ const createSchedule = async (res: any, req: any) => {
   try {
     validateScheduleDetails(JSON.parse(req.body));
 
-    const result = await pool.query(
+    const result = await dataSource.query(
       `
       INSERT INTO attendance_schedules (
         attendance_schedule_name,
@@ -203,7 +203,7 @@ const clockInIndividual = async (res: any, req: any) => {
     validateClockInTime(schedule);
 
     // Proceed with clock in
-    const result = await pool.query(
+    const result = await dataSource.query(
       `
       INSERT INTO attendance_attendance (schedule_id, user_id, clock_in_time, coordinates, device_info)
       VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4)
@@ -261,7 +261,7 @@ const clockInBulk = async (res: any, req: any) => {
       SET clock_in_time = EXCLUDED.clock_in_time;
     `;
 
-    await pool.query(query);
+    await dataSource.query(query);
 
     res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
@@ -302,7 +302,7 @@ const clockOutIndividual = async (res: any, req: any) => {
 
   try {
     // First, fetch the active attendance record (with no clock_out_time) for this user & schedule.
-    const attendanceResult = await pool.query(
+    const attendanceResult = await dataSource.query(
       `
       SELECT * FROM attendance_attendance
       WHERE user_id = $1 AND schedule_id = $2 AND clock_out_time IS NULL
@@ -340,7 +340,7 @@ const clockOutIndividual = async (res: any, req: any) => {
     }
 
     // Proceed with updating the attendance record for clock out.
-    const result = await pool.query(
+    const result = await dataSource.query(
       `
       UPDATE attendance_attendance
       SET clock_out_time = CURRENT_TIMESTAMP, coordinates = $3, device_info = $4
@@ -363,57 +363,10 @@ const clockOutIndividual = async (res: any, req: any) => {
   }
 };
 
-// Create uWebSocket.js app and define routes
-const app = App();
 
-app.post('/create-schedule', (res, req) => {
-  let buffer = '';
-  req.onData((chunk, isLast) => {
-    buffer += Buffer.from(chunk).toString();
-    if (isLast) {
-      req.body = buffer;
-      createSchedule(res, req);
-    }
-  });
-});
-
-app.post('/clock-in-individual', (res, req) => {
-  let buffer = '';
-  req.onData((chunk, isLast) => {
-    buffer += Buffer.from(chunk).toString();
-    if (isLast) {
-      req.body = buffer;
-      clockInIndividual(res, req);
-    }
-  });
-});
-
-app.post('/clock-in-bulk', (res, req) => {
-  let buffer = '';
-  req.onData((chunk, isLast) => {
-    buffer += Buffer.from(chunk).toString();
-    if (isLast) {
-      req.body = buffer;
-      clockInBulk(res, req);
-    }
-  });
-});
-
-app.post('/clock-out-individual', (res, req) => {
-  let buffer = '';
-  req.onData((chunk, isLast) => {
-    buffer += Buffer.from(chunk).toString();
-    if (isLast) {
-      req.body = buffer;
-      clockOutIndividual(res, req);
-    }
-  });
-});
-
-app.listen(9001, (token) => {
-  if (token) {
-    console.log('Listening to port 9001');
-  } else {
-    console.log('Failed to listen to port 9001');
-  }
-});
+export {
+  createSchedule,
+  clockInIndividual,
+  clockInBulk,
+  clockOutIndividual,
+};

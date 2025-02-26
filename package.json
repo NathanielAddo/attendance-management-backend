@@ -8,7 +8,7 @@
     "copy-cert": "cpy ca-certificate.crt dist/",
     "copy-env": "cpy .env dist/",
     "build": "tsc && npm run copy-schema",
-    "start": "node dist/server.js",
+    "serve": "node dist/server.js",
     "dev": "node --loader ts-node/esm src/server.ts"
   },
   "dependencies": {
@@ -34,8 +34,7 @@
     "reflect-metadata": "^0.2.2",
     "twilio": "^5.3.7",
     "typeorm": "^0.3.20",
-    "uwebsockets.js": "^19.0.0-docs",
-    "uws": "^200.0.0"
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.51.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

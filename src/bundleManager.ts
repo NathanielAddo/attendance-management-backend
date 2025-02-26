@@ -6,7 +6,7 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import s3 from "./spaces";
-import { pool } from "./db";
+import { dataSource } from "./db";
 
 const gzipAsync = promisify(gzip);
 
@@ -17,7 +17,7 @@ export async function createAndUploadBundle(
 ) {
   try {
     // Execute query
-    const result = await pool.query(query, params);
+    const result = await dataSource.query(query, params);
 
     // Format result as JSON
     const jsonResult = JSON.stringify(result.rows);

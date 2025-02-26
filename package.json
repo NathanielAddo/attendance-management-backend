@@ -53,5 +53,8 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.2"
-  }
+  },
+  "repository": "https://github.com/NathanielAddo/attendance-management-backend.git",
+  "author": "NathanielAddo <stevenelly@gmail.com>",
+  "license": "MIT"
 }

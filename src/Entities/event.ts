@@ -8,6 +8,7 @@ export interface Event {
     date: string;
     country: string;
     branch: string;
+    //city: string;
     // Adding the missing properties from Event (bubbles, cancelBubble, cancelable, composed, etc.)
     bubbles: boolean;
     cancelBubble: boolean;

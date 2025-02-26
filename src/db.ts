@@ -1,8 +1,9 @@
+// src/data-source.ts
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import { Attendance_Attendance } from "./Entities/attendance"; 
+import { Attendance_Attendance } from "./Entities/attendance";
 dotenv.config();
 
 // Resolve the path to the CA certificate
@@ -16,9 +17,8 @@ try {
   process.exit(1);
 }
 
-// TypeORM DataSource setup
 export const dataSource = new DataSource({
-  type: "postgres", // Assuming you are using PostgreSQL
+  type: "postgres", // Using PostgreSQL
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
   username: process.env.DB_USER,
@@ -28,20 +28,24 @@ export const dataSource = new DataSource({
     rejectUnauthorized: true,
     ca: caCert,
   },
-  entities: [Attendance_Attendance], // Register your entity here
-  synchronize: true, // Automatically sync the schema to the database
-  logging: process.env.DB_LOGGING === "true", // Optional logging based on env
-  migrations: [], // You can set up migrations if needed in the future
+  entities: [Attendance_Attendance], // Register your entities here
+  synchronize: true, // Automatically sync schema (disable in production)
+  logging: process.env.DB_LOGGING === "true",
+  // Look for migration files in the migrations folder (both .ts and .js)
+  migrations: [path.join(__dirname, "migrations", "*.{ts,js}")],
   subscribers: [],
 });
 
-// Test the TypeORM connection
-(async () => {
-  try {
-    await dataSource.initialize();
-    console.log("Database connection successful.");
-  } catch (error: any) {
-    console.error("Database connection failed:", error.message);
-    process.exit(1);
-  }
-})();
+// Allow direct run for testing the connection (optional)
+if (require.main === module) {
+  (async () => {
+    try {
+      await dataSource.initialize();
+      console.log("Database connection successful.");
+      process.exit(0);
+    } catch (error: any) {
+      console.error("Database connection failed:", error.message);
+      process.exit(1);
+    }
+  })();
+}

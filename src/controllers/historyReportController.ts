@@ -22,7 +22,7 @@
 //     res.json(rows);
 //   } catch (error) {
 //     console.error('Error fetching summary report:', error);
-//     res.status(500).json({ message: 'Error fetching summary report' });
+//     res.writeStatus(500).json({ message: 'Error fetching summary report' });
 //   }
 // };
 
@@ -68,7 +68,7 @@
 //     res.json(Object.values(breakdownReport));
 //   } catch (error) {
 //     console.error('Error fetching breakdown report:', error);
-//     res.status(500).json({ message: 'Error fetching breakdown report' });
+//     res.writeStatus(500).json({ message: 'Error fetching breakdown report' });
 //   }
 // };
 
@@ -81,7 +81,7 @@
 //     }
 //   } catch (error) {
 //     console.error('Error validating users:', error);
-//     res.status(400).json({ message: 'Error validating users' });
+//     res.writeStatus(400).json({ message: 'Error validating users' });
 //   }
 // };
 
@@ -122,12 +122,12 @@
 
 //     res.download(path.resolve(__dirname, '../exports/summary_report.csv'), 'summary_report.csv', (err) => {
 //       if (err) {
-//         res.status(500).json({ message: 'Error downloading the file' });
+//         res.writeStatus(500).json({ message: 'Error downloading the file' });
 //       }
 //     });
 //   } catch (error) {
 //     console.error('Error downloading summary report:', error);
-//     res.status(500).json({ message: 'Error downloading summary report' });
+//     res.writeStatus(500).json({ message: 'Error downloading summary report' });
 //   }
 // };
 
@@ -168,12 +168,12 @@
 
 //     res.download(path.resolve(__dirname, '../exports/breakdown_report.csv'), 'breakdown_report.csv', (err) => {
 //       if (err) {
-//         res.status(500).json({ message: 'Error downloading the file' });
+//         res.writeStatus(500).json({ message: 'Error downloading the file' });
 //       }
 //     });
 //   } catch (error) {
 //     console.error('Error downloading breakdown report:', error);
-//     res.status(500).json({ message: 'Error downloading breakdown report' });
+//     res.writeStatus(500).json({ message: 'Error downloading breakdown report' });
 //   }
 // };
 

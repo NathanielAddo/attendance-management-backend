@@ -1,5 +1,3 @@
-// attendanceController.ts
-
 import { App } from 'uWebSockets.js';
 import { dataSource } from "../db";
 
@@ -26,6 +24,15 @@ const getTodayDateString = (): string => {
   return today.toISOString().split('T')[0];
 };
 
+// Helper function to validate clock-in time
+const validateClockInTime = (schedule: any) => {
+  const now = new Date();
+  const clockInTime = new Date(schedule.clock_in_time);
+  if (now < clockInTime) {
+    throw new Error('Clock-in time is not valid.');
+  }
+};
+
 // Helper function to validate schedule details on creation
 const validateScheduleDetails = (scheduleDetails: any) => {
   const {
@@ -42,7 +49,7 @@ const validateScheduleDetails = (scheduleDetails: any) => {
   // Continue validating other fields as needed...
 };
 
-// Create a new schedule – note the addition of unlimitedShadow
+// Create a new schedule
 const createSchedule = async (res: any, req: any) => {
   const {
     attendanceScheduleName,
@@ -126,62 +133,16 @@ const createSchedule = async (res: any, req: any) => {
       ]
     );
 
-    res.writeStatus('200 OK').end(JSON.stringify({
+    res.writeStatus('200').end(JSON.stringify({
       success: true,
       message: 'Schedule created successfully.',
       data: result.rows[0]
     }));
   } catch (error: any) {
-    res.writeStatus('500 Internal Server Error').end(JSON.stringify({
+    res.writeStatus('500').end(JSON.stringify({
       success: false,
       error: error.message,
     }));
-  }
-};
-
-/**
- * Validate that (unless the schedule is unlimited) the current time
- * falls within the allowed clock-in window.
- * 
- * For non-unlimited schedules, we:
- *  - (Optionally) check that today is an allowed day (using recurringDays or nonRecurringDates).
- *  - Combine today’s date with schedule.clock_in_time (a string in "HH:mm" format).
- *  - Compute the allowed cutoff as scheduled start + lateTime (in minutes).
- */
-const validateClockInTime = (schedule: any): void => {
-  // If schedule is marked as unlimited, skip time validation
-  if (schedule.unlimited_shadow) return;
-
-  const now = new Date();
-  const todayStr = getTodayDateString();
-
-  // If recurring, check if today is allowed (assumes recurring_days stored as JSON array of numbers: 0 (Sun) to 6 (Sat))
-  if (schedule.recurring) {
-    const allowedDays: number[] = JSON.parse(schedule.recurring_days);
-    if (!allowedDays.includes(now.getDay())) {
-      throw new Error('This schedule is not active today.');
-    }
-  } else if (schedule.non_recurring_dates) {
-    // For non-recurring schedules, expect an array of date strings ("YYYY-MM-DD")
-    const allowedDates: string[] = JSON.parse(schedule.non_recurring_dates);
-    if (!allowedDates.includes(todayStr)) {
-      throw new Error('This schedule is not active on today’s date.');
-    }
-  }
-
-  // Build the scheduled clock-in datetime using today’s date and clockInTime (expected format "HH:mm")
-  const [hours, minutes] = schedule.clock_in_time.split(':').map((p: string) => parseInt(p, 10));
-  const scheduledStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
-
-  // Calculate the allowed cutoff time (clock_in_time + late_time in minutes)
-  const allowedCutoff = new Date(scheduledStart.getTime() + (parseInt(schedule.late_time, 10) || 0) * 60000);
-
-  if (now < scheduledStart) {
-    throw new Error('Clock in not allowed yet. Please wait until the scheduled time.');
-  }
-
-  if (now > allowedCutoff) {
-    throw new Error('Clock in period has closed.');
   }
 };
 
@@ -190,7 +151,7 @@ const clockInIndividual = async (res: any, req: any) => {
   const { scheduleId, userId, location, deviceInfo } = JSON.parse(req.body);
 
   if (!isValidLocation(location)) {
-    res.writeStatus('400 Bad Request').end(JSON.stringify({
+    res.writeStatus('400').end(JSON.stringify({
       success: false,
       error: 'Invalid location: Latitude or longitude is not a valid number.',
     }));
@@ -198,11 +159,9 @@ const clockInIndividual = async (res: any, req: any) => {
   }
 
   try {
-    // Fetch schedule details to enforce the allowed clock-in window.
     const schedule = await getScheduleById(scheduleId);
     validateClockInTime(schedule);
 
-    // Proceed with clock in
     const result = await dataSource.query(
       `
       INSERT INTO attendance_attendance (schedule_id, user_id, clock_in_time, coordinates, device_info)
@@ -214,13 +173,13 @@ const clockInIndividual = async (res: any, req: any) => {
       [scheduleId, userId, JSON.stringify(location), JSON.stringify(deviceInfo)]
     );
 
-    res.writeStatus('200 OK').end(JSON.stringify({
+    res.writeStatus('200').end(JSON.stringify({
       success: true,
       message: 'User clocked in successfully.',
       data: result.rows[0],
     }));
   } catch (error: any) {
-    res.writeStatus('400 Bad Request').end(JSON.stringify({
+    res.writeStatus('400').end(JSON.stringify({
       success: false,
       error: error.message,
     }));
@@ -231,10 +190,9 @@ const clockInIndividual = async (res: any, req: any) => {
 const clockInBulk = async (res: any, req: any) => {
   const { scheduleId, users } = JSON.parse(req.body);
 
-  // Validate each user’s location
   for (const user of users) {
     if (!isValidLocation(user.location)) {
-      res.writeStatus('400 Bad Request').end(JSON.stringify({
+      res.writeStatus('400').end(JSON.stringify({
         success: false,
         error: `Invalid location value for user ${user.userId}.`,
       }));
@@ -243,7 +201,6 @@ const clockInBulk = async (res: any, req: any) => {
   }
 
   try {
-    // Fetch schedule and enforce clock in window (applies for all users)
     const schedule = await getScheduleById(scheduleId);
     validateClockInTime(schedule);
 
@@ -263,29 +220,24 @@ const clockInBulk = async (res: any, req: any) => {
 
     await dataSource.query(query);
 
-    res.writeStatus('200 OK').end(JSON.stringify({
+    res.writeStatus('200').end(JSON.stringify({
       success: true,
       message: 'Users clocked in successfully.',
     }));
   } catch (error: any) {
-    res.writeStatus('400 Bad Request').end(JSON.stringify({
+    res.writeStatus('400').end(JSON.stringify({
       success: false,
       error: error.message,
     }));
   }
 };
 
-/**
- * For clocking out, we enforce that (unless the schedule is unlimited) the clock out
- * must occur within the meeting span period. Here we assume that schedule.schedule_span
- * represents the number of spans (each span equals 24 hours) after clock in within which
- * clock out must occur.
- */
+// Clock out for an individual user
 const clockOutIndividual = async (res: any, req: any) => {
   const { userId, scheduleId, location, deviceInfo } = JSON.parse(req.body);
 
   if (!location || typeof location.latitude === 'undefined' || typeof location.longitude === 'undefined') {
-    res.writeStatus('400 Bad Request').end(JSON.stringify({
+    res.writeStatus('400').end(JSON.stringify({
       success: false,
       error: 'Invalid location: Latitude or longitude is missing.',
     }));
@@ -293,7 +245,7 @@ const clockOutIndividual = async (res: any, req: any) => {
   }
 
   if (!isValidLocation(location)) {
-    res.writeStatus('400 Bad Request').end(JSON.stringify({
+    res.writeStatus('400').end(JSON.stringify({
       success: false,
       error: 'Invalid location: Latitude or longitude is not a valid number.',
     }));
@@ -301,7 +253,6 @@ const clockOutIndividual = async (res: any, req: any) => {
   }
 
   try {
-    // First, fetch the active attendance record (with no clock_out_time) for this user & schedule.
     const attendanceResult = await dataSource.query(
       `
       SELECT * FROM attendance_attendance
@@ -311,7 +262,7 @@ const clockOutIndividual = async (res: any, req: any) => {
     );
 
     if (attendanceResult.rowCount === 0) {
-      res.writeStatus('404 Not Found').end(JSON.stringify({
+      res.writeStatus('404').end(JSON.stringify({
         success: false,
         message: 'Active clock in record not found for clocking out.',
       }));
@@ -321,17 +272,14 @@ const clockOutIndividual = async (res: any, req: any) => {
     const attendanceRecord = attendanceResult.rows[0];
     const clockInTime = new Date(attendanceRecord.clock_in_time);
 
-    // Fetch schedule details to get meeting span and unlimited flag.
     const schedule = await getScheduleById(scheduleId);
 
-    // If schedule is not unlimited, enforce the meeting span limit.
     if (!schedule.unlimited_shadow) {
-      // We assume schedule_span is the number of 24-hour spans allowed.
       const allowedDeadline = new Date(clockInTime.getTime() + (parseInt(schedule.schedule_span, 10) || 1) * 24 * 60 * 60 * 1000);
       const now = new Date();
 
       if (now > allowedDeadline) {
-        res.writeStatus('400 Bad Request').end(JSON.stringify({
+        res.writeStatus('400').end(JSON.stringify({
           success: false,
           error: 'Clock out period has expired.',
         }));
@@ -339,7 +287,6 @@ const clockOutIndividual = async (res: any, req: any) => {
       }
     }
 
-    // Proceed with updating the attendance record for clock out.
     const result = await dataSource.query(
       `
       UPDATE attendance_attendance
@@ -350,19 +297,18 @@ const clockOutIndividual = async (res: any, req: any) => {
       [userId, scheduleId, JSON.stringify(location), JSON.stringify(deviceInfo)]
     );
 
-    res.writeStatus('200 OK').end(JSON.stringify({
+    res.writeStatus('200').end(JSON.stringify({
       success: true,
       message: 'User clocked out successfully.',
       data: result.rows[0],
     }));
   } catch (error: any) {
-    res.writeStatus('500 Internal Server Error').end(JSON.stringify({
+    res.writeStatus('500').end(JSON.stringify({
       success: false,
       error: error.message,
     }));
   }
 };
-
 
 export {
   createSchedule,

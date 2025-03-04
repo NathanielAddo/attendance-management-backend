@@ -8,7 +8,7 @@
 //     const reports = await AttendanceReport.find();
 //     res.json(reports);
 //   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching attendance summary' });
+//     res.writeStatus(500).json({ message: 'Error fetching attendance summary' });
 //   }
 // };
 
@@ -18,7 +18,7 @@
 //     const breakdown = await DailyBreakdown.find({ userId });
 //     res.json(breakdown);
 //   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching attendance breakdown' });
+//     res.writeStatus(500).json({ message: 'Error fetching attendance breakdown' });
 //   }
 // };
 
@@ -42,7 +42,7 @@
 //     const reports = await AttendanceReport.find(query);
 //     res.json(reports);
 //   } catch (error) {
-//     res.status(500).json({ message: 'Error filtering attendance data' });
+//     res.writeStatus(500).json({ message: 'Error filtering attendance data' });
 //   }
 // };
 
@@ -56,7 +56,7 @@
 //     );
 //     res.json(updatedReport);
 //   } catch (error) {
-//     res.status(400).json({ message: 'Error validating report' });
+//     res.writeStatus(400).json({ message: 'Error validating report' });
 //   }
 // };
 
@@ -73,10 +73,10 @@
 //       res.attachment('attendance_report.csv');
 //       res.send(csv);
 //     } catch (err) {
-//       res.status(500).json({ message: 'Error generating CSV file' });
+//       res.writeStatus(500).json({ message: 'Error generating CSV file' });
 //     }
 //   } catch (error) {
-//     res.status(500).json({ message: 'Error exporting attendance report' });
+//     res.writeStatus(500).json({ message: 'Error exporting attendance report' });
 //   }
 // };
 

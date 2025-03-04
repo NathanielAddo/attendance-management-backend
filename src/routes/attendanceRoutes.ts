@@ -1,5 +1,5 @@
 // src/routes/attendanceRoutes.ts
-import uWS, { App } from 'uWebSockets.js';
+import uWS, { TemplatedApp, HttpResponse, HttpRequest } from "uWebSockets.js";
 import {
   createSchedule,
   clockInIndividual,
@@ -20,7 +20,7 @@ type UWSApp = ReturnType<typeof uWS.App>;
  * Registers attendance-related routes on the provided app instance.
  */
 export default function attendanceRoutes(app: UWSApp): void {
-  const authMiddleware = (res: UWSHttpResponse, req: UWSHttpRequest, next: () => void) => {
+  const authMiddleware = (res: uWS.HttpResponse, req: UWSHttpRequest, next: () => void) => {
     authenticate(req, res);
     next();
   };

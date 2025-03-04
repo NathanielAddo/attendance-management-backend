@@ -1,5 +1,38 @@
-import { App } from 'uWebSockets.js';
+// attendanceController.ts
 import { dataSource } from "../db";
+import uWS, { HttpResponse, HttpRequest } from "uWebSockets.js";
+
+// Use our own alias types for convenience.
+type UWSHttpResponse = any;
+type UWSHttpRequest = any;
+type UWSApp = ReturnType<typeof uWS.App>;
+
+/**
+ * Helper function to read and parse the JSON request body in uWS.
+ * Note: The parameters must be in the order (res, req) as required by uWS.
+ */
+function getRequestBody(res: uWS.HttpResponse, req: uWS.HttpRequest): Promise<any> {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    // req is assumed to have onData method for receiving the body.
+    req.onData((chunk: ArrayBuffer, isLast: boolean) => {
+      body += Buffer.from(chunk).toString();
+      if (isLast) {
+        try {
+          const parsed = JSON.parse(body);
+          resolve(parsed);
+        } catch (err) {
+          res.writeStatus('400 Bad Request').end('Invalid JSON');
+          reject(new Error("Invalid JSON"));
+        }
+      }
+    });
+    // IMPORTANT: Use res.onAborted (not req.onAborted) to handle aborted requests.
+    res.onAborted(() => {
+      reject(new Error("Request aborted"));
+    });
+  });
+}
 
 // Helper to get a schedule by ID
 const getScheduleById = async (scheduleId: number) => {
@@ -35,49 +68,44 @@ const validateClockInTime = (schedule: any) => {
 
 // Helper function to validate schedule details on creation
 const validateScheduleDetails = (scheduleDetails: any) => {
-  const {
-    attendanceScheduleName,
-    country,
-    branch,
-    // … other validations
-  } = scheduleDetails;
-
+  const { attendanceScheduleName, country, branch } = scheduleDetails;
   if (!attendanceScheduleName || !Array.isArray(country) || !Array.isArray(branch)) {
     throw new Error('Invalid schedule details');
   }
-
-  // Continue validating other fields as needed...
 };
 
 // Create a new schedule
-const createSchedule = async (res: any, req: any) => {
-  const {
-    attendanceScheduleName,
-    country,
-    branch,
-    scheduleCategory,
-    scheduleSpan,
-    clockInTime,
-    clockOutTime,
-    lateTime,
-    setBreak,
-    startBreakTime,
-    endBreakTime,
-    locationType,
-    knownLocations,
-    recurring,
-    recurringDays,
-    recurringDuration,
-    nonRecurringDates,
-    overtimeStatus,
-    virtualMeeting,
-    monthlyClockingOccurrences,
-    monthlyMinClockingOccurrences,
-    unlimitedShadow // NEW FIELD: when true the schedule never “expires”
-  } = JSON.parse(req.body);
-
+const createSchedule = async (res: uWS.HttpResponse, req: uWS.HttpRequest) => {
   try {
-    validateScheduleDetails(JSON.parse(req.body));
+    // Note: Passing (res, req) is critical.
+    const body = await getRequestBody(res, req);
+    const {
+      attendanceScheduleName,
+      country,
+      branch,
+      scheduleCategory,
+      scheduleSpan,
+      clockInTime,
+      clockOutTime,
+      lateTime,
+      setBreak,
+      startBreakTime,
+      endBreakTime,
+      locationType,
+      knownLocations,
+      recurring,
+      recurringDays,
+      recurringDuration,
+      nonRecurringDates,
+      overtimeStatus,
+      virtualMeeting,
+      monthlyClockingOccurrences,
+      monthlyMinClockingOccurrences,
+      unlimitedShadow // when true the schedule never “expires”
+    } = body;
+
+    // Validate schedule details
+    validateScheduleDetails(body);
 
     const result = await dataSource.query(
       `
@@ -133,32 +161,33 @@ const createSchedule = async (res: any, req: any) => {
       ]
     );
 
-    res.writeStatus('200').end(JSON.stringify({
+    res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
       message: 'Schedule created successfully.',
       data: result.rows[0]
     }));
   } catch (error: any) {
-    res.writeStatus('500').end(JSON.stringify({
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({
       success: false,
       error: error.message,
     }));
   }
 };
 
-// Clock in for an individual user (with new schedule validation logic)
-const clockInIndividual = async (res: any, req: any) => {
-  const { scheduleId, userId, location, deviceInfo } = JSON.parse(req.body);
-
-  if (!isValidLocation(location)) {
-    res.writeStatus('400').end(JSON.stringify({
-      success: false,
-      error: 'Invalid location: Latitude or longitude is not a valid number.',
-    }));
-    return;
-  }
-
+// Clock in for an individual user
+const clockInIndividual = async (res: uWS.HttpResponse, req: uWS.HttpRequest) => {
   try {
+    const body = await getRequestBody(res, req);
+    const { scheduleId, userId, location, deviceInfo } = body;
+
+    if (!isValidLocation(location)) {
+      res.writeStatus('400 Bad Request').end(JSON.stringify({
+        success: false,
+        error: 'Invalid location: Latitude or longitude is not a valid number.',
+      }));
+      return;
+    }
+
     const schedule = await getScheduleById(scheduleId);
     validateClockInTime(schedule);
 
@@ -173,34 +202,35 @@ const clockInIndividual = async (res: any, req: any) => {
       [scheduleId, userId, JSON.stringify(location), JSON.stringify(deviceInfo)]
     );
 
-    res.writeStatus('200').end(JSON.stringify({
+    res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
       message: 'User clocked in successfully.',
       data: result.rows[0],
     }));
   } catch (error: any) {
-    res.writeStatus('400').end(JSON.stringify({
+    res.writeStatus('400 Bad Request').end(JSON.stringify({
       success: false,
       error: error.message,
     }));
   }
 };
 
-// Clock in for multiple users (Bulk) – includes schedule validation
-const clockInBulk = async (res: any, req: any) => {
-  const { scheduleId, users } = JSON.parse(req.body);
-
-  for (const user of users) {
-    if (!isValidLocation(user.location)) {
-      res.writeStatus('400').end(JSON.stringify({
-        success: false,
-        error: `Invalid location value for user ${user.userId}.`,
-      }));
-      return;
-    }
-  }
-
+// Clock in for multiple users (Bulk)
+const clockInBulk = async (res: uWS.HttpResponse, req: uWS.HttpRequest) => {
   try {
+    const body = await getRequestBody(res, req);
+    const { scheduleId, users } = body;
+
+    for (const user of users) {
+      if (!isValidLocation(user.location)) {
+        res.writeStatus('400 Bad Request').end(JSON.stringify({
+          success: false,
+          error: `Invalid location value for user ${user.userId}.`,
+        }));
+        return;
+      }
+    }
+
     const schedule = await getScheduleById(scheduleId);
     validateClockInTime(schedule);
 
@@ -220,12 +250,12 @@ const clockInBulk = async (res: any, req: any) => {
 
     await dataSource.query(query);
 
-    res.writeStatus('200').end(JSON.stringify({
+    res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
       message: 'Users clocked in successfully.',
     }));
   } catch (error: any) {
-    res.writeStatus('400').end(JSON.stringify({
+    res.writeStatus('400 Bad Request').end(JSON.stringify({
       success: false,
       error: error.message,
     }));
@@ -233,26 +263,27 @@ const clockInBulk = async (res: any, req: any) => {
 };
 
 // Clock out for an individual user
-const clockOutIndividual = async (res: any, req: any) => {
-  const { userId, scheduleId, location, deviceInfo } = JSON.parse(req.body);
-
-  if (!location || typeof location.latitude === 'undefined' || typeof location.longitude === 'undefined') {
-    res.writeStatus('400').end(JSON.stringify({
-      success: false,
-      error: 'Invalid location: Latitude or longitude is missing.',
-    }));
-    return;
-  }
-
-  if (!isValidLocation(location)) {
-    res.writeStatus('400').end(JSON.stringify({
-      success: false,
-      error: 'Invalid location: Latitude or longitude is not a valid number.',
-    }));
-    return;
-  }
-
+const clockOutIndividual = async (res: UWSHttpResponse, req: UWSHttpRequest) => {
   try {
+    const body = await getRequestBody(res, req);
+    const { userId, scheduleId, location, deviceInfo } = body;
+
+    if (!location || typeof location.latitude === 'undefined' || typeof location.longitude === 'undefined') {
+      res.writeStatus('400 Bad Request').end(JSON.stringify({
+        success: false,
+        error: 'Invalid location: Latitude or longitude is missing.',
+      }));
+      return;
+    }
+
+    if (!isValidLocation(location)) {
+      res.writeStatus('400 Bad Request').end(JSON.stringify({
+        success: false,
+        error: 'Invalid location: Latitude or longitude is not a valid number.',
+      }));
+      return;
+    }
+
     const attendanceResult = await dataSource.query(
       `
       SELECT * FROM attendance_attendance
@@ -262,7 +293,7 @@ const clockOutIndividual = async (res: any, req: any) => {
     );
 
     if (attendanceResult.rowCount === 0) {
-      res.writeStatus('404').end(JSON.stringify({
+      res.writeStatus('404 Not Found').end(JSON.stringify({
         success: false,
         message: 'Active clock in record not found for clocking out.',
       }));
@@ -271,15 +302,15 @@ const clockOutIndividual = async (res: any, req: any) => {
 
     const attendanceRecord = attendanceResult.rows[0];
     const clockInTime = new Date(attendanceRecord.clock_in_time);
-
     const schedule = await getScheduleById(scheduleId);
 
     if (!schedule.unlimited_shadow) {
-      const allowedDeadline = new Date(clockInTime.getTime() + (parseInt(schedule.schedule_span, 10) || 1) * 24 * 60 * 60 * 1000);
+      const allowedDeadline = new Date(
+        clockInTime.getTime() + (parseInt(schedule.schedule_span, 10) || 1) * 24 * 60 * 60 * 1000
+      );
       const now = new Date();
-
       if (now > allowedDeadline) {
-        res.writeStatus('400').end(JSON.stringify({
+        res.writeStatus('400 Bad Request').end(JSON.stringify({
           success: false,
           error: 'Clock out period has expired.',
         }));
@@ -297,13 +328,13 @@ const clockOutIndividual = async (res: any, req: any) => {
       [userId, scheduleId, JSON.stringify(location), JSON.stringify(deviceInfo)]
     );
 
-    res.writeStatus('200').end(JSON.stringify({
+    res.writeStatus('200 OK').end(JSON.stringify({
       success: true,
       message: 'User clocked out successfully.',
       data: result.rows[0],
     }));
   } catch (error: any) {
-    res.writeStatus('500').end(JSON.stringify({
+    res.writeStatus('500 Internal Server Error').end(JSON.stringify({
       success: false,
       error: error.message,
     }));

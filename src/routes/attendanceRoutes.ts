@@ -9,7 +9,7 @@ import {
 import { authenticate } from '../middlewares/auth.middleware';
 
 
-const app = App();
+const app = uWS.App();
 
 // Define types for request and response; replace 'any' with proper types if available.
 type UWSHttpResponse = any;
@@ -21,7 +21,7 @@ type UWSApp = ReturnType<typeof uWS.App>;
  */
 export default function attendanceRoutes(app: UWSApp): void {
   const authMiddleware = (res: uWS.HttpResponse, req: UWSHttpRequest, next: () => void) => {
-    authenticate(req, res);
+    authenticate(res, req);
     next();
   };
 
@@ -32,16 +32,16 @@ export default function attendanceRoutes(app: UWSApp): void {
 
   // Individual attendance route: Clock in for a single user
   app.post('/schedules/:scheduleId/clock-in', (res: UWSHttpResponse, req: UWSHttpRequest) => {
-    authMiddleware(res, req, () => clockInIndividual(req, res));
+    authMiddleware(res, req, () => clockInIndividual(res, req));
   });
 
   // Individual attendance route: Clock out for a single user
   app.post('/schedules/:scheduleId/clock-out', (res: UWSHttpResponse, req: UWSHttpRequest) => {
-    authMiddleware(res, req, () => clockOutIndividual(req, res));
+    authMiddleware(res, req, () => clockOutIndividual(res, req));
   });
 
   // Bulk attendance route: Clock in for multiple users
   app.post('/schedules/:scheduleId/clock-in/bulk', (res: UWSHttpResponse, req: UWSHttpRequest) => {
-    authMiddleware(res, req, () => clockInBulk(req, res));
+    authMiddleware(res, req, () => clockInBulk(res, req));
   });
 }

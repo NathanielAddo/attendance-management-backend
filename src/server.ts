@@ -1,18 +1,14 @@
-import uWS, { App } from 'uWebSockets.js';
+// server.ts
+import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import { createAndUploadBundle, getBundleUrl, deleteBundle } from './bundleManager';
-import { dataSource } from "./db";
+import { dataSource } from './db';
 import attendanceRoutes from './routes/attendanceRoutes';
+// import other routes as needed
 // import rosterRoutes from './routes/rosterRoutes';
 // import eventRoutes from './routes/eventRoutes';
-// import scheduleRoutes from './routes/scheduleRoutes';
-// import notificationRoutes from './routes/notificationRoutes';
-// import biometricRoutes from './routes/biometricRoutes';
-// import deviceRequestRoutes from './routes/deviceRequestRoutes';
-// import locationRoutes from './routes/locationRoutes';
-// import reportRoutes from './routes/reportRoutes';
-// import offlineRoutes from './routes/offlineRoutes';
-// import adminScheduleRoutes from './routes/adminScheduleRoute';
+// ...
+
 dotenv.config();
 
 const PORT = parseInt(process.env.PORT || '5178', 10);
@@ -24,117 +20,91 @@ const allowedOrigins = [
   "https://symmetrical-xylophone-wrr9gqj97p6v3vxq-3000.app.github.dev",
 ];
 
-const app = App();
-
-// Type aliases for uWebSockets.js request and response
-// Replace 'any' with proper types if available.
-type UWSHttpResponse = any;
-type UWSHttpRequest = any;
-
-// Middleware for CORS
-app.any('/*', (res: UWSHttpResponse, req: UWSHttpRequest, next: () => void) => {
-  const origin = req.getHeader('origin');
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.writeHeader('Access-Control-Allow-Origin', origin || '*');
-    res.writeHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.writeHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Custom-Header');
-    res.writeHeader('Access-Control-Allow-Credentials', 'true');
-    next();
-  } else {
-    res.writeStatus('403 Forbidden').end(`CORS policy does not allow access from origin: ${origin}`);
-  }
-});
+const app = express();
 
 // Middleware for JSON parsing
-app.any('/*', (res: UWSHttpResponse, req: UWSHttpRequest, next: () => void) => {
-  let buffer = '';
-  res.onData((chunk: ArrayBuffer, isLast: boolean) => {
-    buffer += Buffer.from(chunk).toString();
-    if (isLast) {
-      try {
-        req.body = JSON.parse(buffer);
-      } catch (error) {
-        req.body = {};
-      }
-      next();
-    }
-  });
+app.use(express.json());
+
+// Custom CORS middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Custom-Header');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+  } else {
+    res.status(403).send(`CORS policy does not allow access from origin: ${origin}`);
+  }
 });
 
 // API Query route
-app.get('/api/query/:queryName', (res: UWSHttpResponse, req: UWSHttpRequest) => {
-  const queryName = req.getParameter(0);
-  const query = req.getQuery('query');
-  const params = req.getQuery('params');
+app.get('/api/query/:queryName', async (req: Request, res: Response) => {
+  const { queryName } = req.params;
+  const query = req.query.query as string | undefined;
+  const params = req.query.params as string | undefined;
 
   if (!query) {
-    res.writeStatus('400 Bad Request').end(JSON.stringify({ error: 'Query parameter is required' }));
+    res.status(400).json({ error: 'Query parameter is required' });
     return;
   }
 
-  (async () => {
-    try {
-      const existingBundleName = `${queryName}_${Date.now() - 24 * 60 * 60 * 1000}.json.gz`;
-      const existingBundleUrl = await getBundleUrl(existingBundleName);
+  try {
+    // Create an existing bundle name using a timestamp from 24 hours ago.
+    const existingBundleName = `${queryName}_${Date.now() - 24 * 60 * 60 * 1000}.json.gz`;
+    const existingBundleUrl = await getBundleUrl(existingBundleName);
 
-      if (existingBundleUrl) {
-        res.writeStatus('302 Found').writeHeader('Location', existingBundleUrl).end();
-        return;
-      }
-
-      const { publicUrl } = await createAndUploadBundle(
-        queryName,
-        query,
-        params ? JSON.parse(params) : []
-      );
-      res.writeStatus('302 Found').writeHeader('Location', publicUrl).end();
-    } catch (error) {
-      console.error('Error processing query:', error);
-      res.writeStatus('500 Internal Server Error').end(JSON.stringify({ error: 'Internal server error' }));
+    if (existingBundleUrl) {
+      res.redirect(302, existingBundleUrl);
+      return;
     }
-  })();
+
+    const { publicUrl } = await createAndUploadBundle(
+      queryName,
+      query,
+      params ? JSON.parse(params) : []
+    );
+    res.redirect(302, publicUrl);
+  } catch (error) {
+    console.error('Error processing query:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // API Invalidate route
-app.post('/api/invalidate/:queryName', (res: UWSHttpResponse, req: UWSHttpRequest) => {
-  const queryName = req.getParameter(0);
+app.post('/api/invalidate/:queryName', async (req: Request, res: Response) => {
+  const { queryName } = req.params;
 
-  (async () => {
-    try {
-      const bundleName = `${queryName}_*.json.gz`;
-      await deleteBundle(bundleName);
-      res.end(JSON.stringify({ message: 'Bundle invalidated successfully' }));
-    } catch (error) {
-      console.error('Error invalidating bundle:', error);
-      res.writeStatus('500 Internal Server Error').end(JSON.stringify({ error: 'Internal server error' }));
-    }
-  })();
+  try {
+    const bundleName = `${queryName}_*.json.gz`;
+    await deleteBundle(bundleName);
+    res.json({ message: 'Bundle invalidated successfully' });
+  } catch (error) {
+    console.error('Error invalidating bundle:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// Register attendance routes
-// This function (exported as default from your attendanceRoutes module) registers all attendance endpoints.
+// Register attendance routes (and any additional routes)
 attendanceRoutes(app);
+// Example: rosterRoutes(app), eventRoutes(app), etc.
 
-// 404 handler
-app.any('/*', (res: UWSHttpResponse, req: UWSHttpRequest) => {
-  res.writeStatus('404 Not Found').end('Sorry, that route does not exist.');
+// 404 handler for unmatched routes
+app.use((req: Request, res: Response) => {
+  res.status(404).send('Sorry, that route does not exist.');
 });
 
-// Start the server
-app.listen(PORT, async (token: any) => {
-  if (token) {
-    console.log(`Server running on port ${PORT}`);
+// Start the server and initialize the database
+app.listen(PORT, async () => {
+  console.log(`Server running on port ${PORT}`);
 
-    try {
-      // Initialize your database connection
-      await dataSource.initialize();
-      console.log('Connected to the database successfully');
-    } catch (error) {
-      console.error('Database connection error:', error);
-      process.exit(1);
-    }
-  } else {
-    console.log(`Failed to listen on port ${PORT}`);
+  try {
+    await dataSource.initialize();
+    console.log('Connected to the database successfully');
+  } catch (error) {
+    console.error('Database connection error:', error);
+    process.exit(1);
   }
 });
 

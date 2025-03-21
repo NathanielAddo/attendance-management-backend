@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Unique } from 'typeorm';
 
 @Entity("attendance_attendance") // Table for attendance events
+@Unique(["scheduleId", "userId"])  // Add composite unique constraint
 export class AttendanceRecord {
   @PrimaryGeneratedColumn("uuid")
   id!: string;

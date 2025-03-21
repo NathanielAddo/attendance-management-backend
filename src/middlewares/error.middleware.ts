@@ -1,17 +1,11 @@
-import { toCustomError } from "../utils/to_custom_error";
-import uWS, { TemplatedApp, HttpResponse, HttpRequest } from "uWebSockets.js";
+// src/middlewares/error.middleware.ts
+import { Response } from "express";
 
-
-type UWSHttpResponse = any; // Replace 'any' with a proper type if available
-type UWSHttpRequest = any;
-
-export const handleError = (res: uWS.HttpResponse, error: unknown): void => {
-  const { message, statusCode } = toCustomError(error);
-
-  // Set the response status and send the JSON error response
-  res.writeStatus(statusCode.toString()).end(JSON.stringify({
+export const handleError = (res: Response, error: unknown): void => {
+  console.error("Error:", (error as Error).message);
+  res.status(500).json({
     success: false,
-    message,
-    statusCode,
-  }));
+    message: "Internal Server Error",
+    error: (error as Error).message,
+  });
 };

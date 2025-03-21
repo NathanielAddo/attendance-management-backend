@@ -1,11 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity()
+@Entity("attendance_schedules") // Explicit table name
 export class Attendance_Attendance {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
-  @Column()
+  @Column({ name: "attendance_schedule_name" })
   attendanceScheduleName!: string;
 
   @Column()
@@ -14,54 +14,66 @@ export class Attendance_Attendance {
   @Column()
   branch!: string;
 
-  @Column()
+  @Column({ name: "schedule_category" })
   scheduleCategory!: string;
-
-  @Column()
+  
+  @Column({ name: "schedule_span" })
   scheduleSpan!: string;
-
-  @Column()
+  
+  @Column({ name: "clock_in_time" })
   clockInTime!: string;
-
-  @Column()
+  
+  @Column({ name: "clock_out_time" })
   clockOutTime!: string;
 
-  @Column()
+  @Column({ name: "late_time" })
   lateTime!: string;
 
-  @Column()
+  @Column({ name: "set_break" })
   setBreak!: string;
 
-  @Column()
+  @Column({ name: "start_break_time" })
+  startBreakTime!: string;
+
+  @Column({ name: "end_break_time" })
+  endBreakTime!: string;
+
+  @Column({ name: "location_type" })
   locationType!: string;
 
-  @Column()
+  @Column({ name: "known_locations" })
   knownLocations!: string;
 
-  @Column()
+  @Column({ name: "recurring" })
   recurring!: boolean;
 
-  @Column()
-  recurringDuration!: string;
+  @Column({ name: "recurring_days" })
+  recurringDays!: string;
 
-  @Column()
+  // Explicitly specify the type as "varchar" and allow null values.
+  @Column({ name: "recurring_duration", type: "varchar", nullable: true })
+  recurringDuration!: string | null;
+
+  @Column({ name: "non_recurring_dates" })
+  nonRecurringDates!: string;
+
+  @Column({ name: "overtime_status" })
   overtimeStatus!: string;
 
-  @Column()
+  @Column({ name: "virtual_meeting" })
   virtualMeeting!: boolean;
 
-  @Column()
+  @Column({ name: "monthly_clocking_occurrences" })
   monthlyClockingOccurrences!: number;
 
-  @Column()
+  @Column({ name: "monthly_min_clocking_occurrences" })
   monthlyMinClockingOccurrences!: number;
 
-  @Column()
+  @Column({ name: "unlimited_shadow" })
   unlimitedShadow!: boolean;
 
   constructor() {
-    // Ensure all required fields are initialized here
-    this.id = 0;
+    this.id = "";
     this.attendanceScheduleName = '';
     this.country = '';
     this.branch = '';
@@ -71,10 +83,14 @@ export class Attendance_Attendance {
     this.clockOutTime = '';
     this.lateTime = '';
     this.setBreak = '';
+    this.startBreakTime = '';
+    this.endBreakTime = '';
     this.locationType = '';
     this.knownLocations = '';
     this.recurring = false;
-    this.recurringDuration = '';
+    this.recurringDays = '';
+    this.recurringDuration = null; // Now allowed to be null
+    this.nonRecurringDates = '';
     this.overtimeStatus = '';
     this.virtualMeeting = false;
     this.monthlyClockingOccurrences = 0;

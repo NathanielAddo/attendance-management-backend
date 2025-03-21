@@ -17,7 +17,7 @@ const PORT = parseInt(process.env.PORT || '5178', 10);
 const allowedOrigins = [
   "https://super.akwaabahr.com",
   "https://akwaabahr.com",
-  "https://symmetrical-xylophone-wrr9gqj97p6v3vxq-3000.app.github.dev",
+  "http://localhost:3000/",
 ];
 
 const app = express();
@@ -87,8 +87,9 @@ app.post('/api/invalidate/:queryName', async (req: Request, res: Response) => {
 });
 
 // Register attendance routes (and any additional routes)
-attendanceRoutes(app);
-// Example: rosterRoutes(app), eventRoutes(app), etc.
+// Instead of calling attendanceRoutes(app), use app.use() to mount the router.
+app.use('/attendance', attendanceRoutes);
+// Example: app.use('/roster', rosterRoutes), app.use('/event', eventRoutes), etc.
 
 // 404 handler for unmatched routes
 app.use((req: Request, res: Response) => {

@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import { Attendance_Attendance } from "./Entities/attendance";
+import { Location } from "./Entities/location";
 import { AttendanceRecord } from "./Entities/attendanceRecord"; // new entity
 dotenv.config();
 
@@ -29,7 +30,7 @@ export const dataSource = new DataSource({
     rejectUnauthorized: true,
     ca: caCert,
   },
-  entities: [Attendance_Attendance, AttendanceRecord], // Register your entities here
+  entities: [Attendance_Attendance, AttendanceRecord, Location], // Register your entities here
   synchronize: true, // Automatically sync schema (disable in production)
   logging: process.env.DB_LOGGING === "true",
   // Look for migration files in the migrations folder (both .ts and .js)

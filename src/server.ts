@@ -5,7 +5,7 @@ import { createAndUploadBundle, getBundleUrl, deleteBundle } from './bundleManag
 import { dataSource } from './db';
 import attendanceRoutes from './routes/attendanceRoutes';
 // import other routes as needed
-// import rosterRoutes from './routes/rosterRoutes';
+import locationRoutes from './routes/locationRoutes';
 // import eventRoutes from './routes/eventRoutes';
 // ...
 
@@ -89,6 +89,7 @@ app.post('/api/invalidate/:queryName', async (req: Request, res: Response) => {
 // Register attendance routes (and any additional routes)
 // Instead of calling attendanceRoutes(app), use app.use() to mount the router.
 app.use('/attendance', attendanceRoutes);
+app.use('/location', locationRoutes)
 // Example: app.use('/roster', rosterRoutes), app.use('/event', eventRoutes), etc.
 
 // 404 handler for unmatched routes

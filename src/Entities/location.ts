@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity('attendance_locations') // Specify the table name
+@Entity('attendance_locations')
 export class Location {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -12,9 +12,9 @@ export class Location {
   address!: string;
 
   @Column()
-  coordinates!: string; // Assuming coordinates are stored as a string
+  coordinates!: string; // Stored as "latitude,longitude"
 
-  @Column('float') // Assuming radius is a floating-point number
+  @Column('float')
   radius!: number;
 
   @Column()
@@ -22,4 +22,19 @@ export class Location {
 
   @Column()
   branch!: string;
+
+  @Column({ nullable: true })
+  wifiId?: string;
+
+  @Column({ nullable: true })
+  bluetoothDeviceId?: string;
+
+  @Column({ nullable: true })
+  locationType?: string;
+
+  @Column({ nullable: true })
+  lastUpdated?: string;
+
+  @Column({ nullable: true })
+  updatedBy?: string;
 }
